@@ -1141,7 +1141,7 @@ function KilimanjaroComparison({ compact, phone, oceanHeight }) {
 // ─── Main Component ──────────────────────────────────────────────────
 export default function AtmosphereScrolly() {
   const [viewport, setViewport] = useState({ width: 1280, height: 800 });
-  // Ocean = half the viewport height
+  // Desktop keeps sea level centered; mobile anchors it to the bottom edge.
   const [oceanHeight, setOceanHeight] = useState(400);
   const totalHeight = ATM_HEIGHT + oceanHeight;
   const [currentKm, setCurrentKm] = useState(0);
@@ -1154,11 +1154,14 @@ export default function AtmosphereScrolly() {
   const [hudHeight, setHudHeight] = useState(88);
 
   const getHalfVisibleSceneHeight = useCallback(() => {
+    if (viewport.width < 680) {
+      return 0;
+    }
     if (containerRef.current) {
       return Math.round(containerRef.current.clientHeight / 2);
     }
     return Math.round(Math.max(viewport.height - hudHeight, 0) / 2);
-  }, [viewport.height, hudHeight]);
+  }, [viewport.width, viewport.height, hudHeight]);
 
   useEffect(() => {
     if (typeof document === "undefined") return undefined;
@@ -1467,7 +1470,9 @@ export default function AtmosphereScrolly() {
       if (touchStartY.current === null || nextY == null) return;
       e.preventDefault();
       e.stopPropagation();
-      const delta = nextY - touchStartY.current;
+      // Touch movement is inverted relative to wheel deltaY:
+      // swiping up decreases clientY but should behave like positive wheel input.
+      const delta = touchStartY.current - nextY;
       touchStartY.current = nextY;
       advanceChapter(delta * 1.35);
     };
@@ -1493,21 +1498,25 @@ export default function AtmosphereScrolly() {
     window.addEventListener("touchstart", handleTouchStart, { passive: true });
     window.addEventListener("touchmove", handleTouchMove, { passive: false });
     window.addEventListener("touchend", handleTouchEnd, { passive: true });
+    window.addEventListener("touchcancel", handleTouchEnd, { passive: true });
     window.addEventListener("keydown", handleKeyDown);
     if (container) container.addEventListener("wheel", handleWheel, { passive: false });
     if (container) container.addEventListener("touchstart", handleTouchStart, { passive: true });
     if (container) container.addEventListener("touchmove", handleTouchMove, { passive: false });
     if (container) container.addEventListener("touchend", handleTouchEnd, { passive: true });
+    if (container) container.addEventListener("touchcancel", handleTouchEnd, { passive: true });
     return () => {
       window.removeEventListener("wheel", handleWheel);
       window.removeEventListener("touchstart", handleTouchStart);
       window.removeEventListener("touchmove", handleTouchMove);
       window.removeEventListener("touchend", handleTouchEnd);
+      window.removeEventListener("touchcancel", handleTouchEnd);
       window.removeEventListener("keydown", handleKeyDown);
       if (container) container.removeEventListener("wheel", handleWheel);
       if (container) container.removeEventListener("touchstart", handleTouchStart);
       if (container) container.removeEventListener("touchmove", handleTouchMove);
       if (container) container.removeEventListener("touchend", handleTouchEnd);
+      if (container) container.removeEventListener("touchcancel", handleTouchEnd);
     };
   }, [activeChapterKm, chapterFadingOut, chapterDirection]);
 
@@ -1584,7 +1593,7 @@ export default function AtmosphereScrolly() {
         ref={hudRef}
         style={{
           position: "relative",
-          zIndex: 20,
+          zIndex: 60,
           background: "rgba(0,0,0,0.7)",
           backdropFilter: "blur(10px)",
           width: "100%",
