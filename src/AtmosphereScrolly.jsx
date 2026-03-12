@@ -154,6 +154,11 @@ const CHAPTER_BREAKS = {
   },
 };
 
+const CHAPTER_BREAK_KMS = Object.keys(CHAPTER_BREAKS).map(Number);
+const GRAPH_NODE_KMS = Array.from(
+  new Set([...landmarks.map((landmark) => landmark.km), ...CHAPTER_BREAK_KMS])
+).sort((a, b) => a - b);
+
 // ─── Physics Helpers ─────────────────────────────────────────────────
 function getTemperature(km) {
   if (km <= 12) return 15 - 6.5 * km;
@@ -309,28 +314,8 @@ function ChapterOverlay({ chapter, progress, lineProgress, passedLines, fadingOu
         let yPercent;
         let opacity = 0;
 
-        if (i === 0) {
-          // First line: fade in at center, hold, then scroll down to exit
-          const fadeInEnd = 0.24;
-          const holdEnd = 0.5; // holds at center until halfway through its slice
-          if (t <= holdEnd) {
-            yPercent = 50;
-          } else {
-            // Scroll from center (50%) down to 115%
-            const exitT = (t - holdEnd) / (1 - holdEnd);
-            const eased = exitT * exitT; // ease-in (accelerate out)
-            yPercent = 50 + eased * 65;
-          }
-          // Opacity: fade in quickly, full through middle, fade out near bottom
-          if (t > 0 && t <= fadeInEnd) {
-            opacity = t / fadeInEnd;
-          } else if (t > fadeInEnd && t <= 0.85) {
-            opacity = 1;
-          } else if (t > 0.85 && t < 1) {
-            opacity = (1 - t) / 0.15;
-          }
-        } else {
-          // Subsequent lines: smooth continuous scroll top → bottom
+        {
+          // All lines use the same continuous scroll top → bottom behavior.
           const eased = t < 0.5
             ? 2 * t * t
             : 1 - Math.pow(-2 * t + 2, 2) / 2;
@@ -359,6 +344,7 @@ function ChapterOverlay({ chapter, progress, lineProgress, passedLines, fadingOu
               opacity: opacity,
               zIndex: t > 0 && t < 1 ? 2 : wasPassed ? 0 : 1,
               willChange: "transform, opacity",
+              transition: compact ? "opacity 90ms linear" : "top 90ms linear, opacity 120ms linear",
             }}
           >
             <div
@@ -493,6 +479,19 @@ function TempProfile({ currentKm, showClimate, onDragAltitude, onDragStateChange
   const curTemp = getTemperature(currentKm);
   const curX = tempToX(Math.min(Math.max(curTemp, minTemp), maxTemp));
   const curY = kmToY(Math.min(currentKm, MAX_ALTITUDE_KM));
+  const graphNodes = useMemo(
+    () =>
+      GRAPH_NODE_KMS.map((km) => {
+        const temp = getTemperature(km);
+        return {
+          km,
+          x: tempToX(Math.min(Math.max(temp, minTemp), maxTemp)),
+          y: kmToY(km),
+          isChapter: CHAPTER_BREAK_KMS.includes(km),
+        };
+      }),
+    [kmToY]
+  );
 
   const boundaries = [12, 50, 85, 500];
 
@@ -586,6 +585,20 @@ function TempProfile({ currentKm, showClimate, onDragAltitude, onDragStateChange
 
           <path d={pathD} fill="none" stroke="rgba(255,180,100,0.78)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
 
+          {graphNodes.map((node) => (
+            <circle
+              key={`temp-node-${node.km}`}
+              cx={node.x}
+              cy={node.y}
+              r={minimalMobileRail ? 2.1 : 2.8}
+              fill={node.isChapter ? "rgba(255,225,160,0.95)" : "rgba(255,255,255,0.78)"}
+              stroke="rgba(0,0,0,0.35)"
+              strokeWidth={0.9}
+              opacity={minimalMobileRail && !node.isChapter ? 0.75 : 1}
+              pointerEvents="none"
+            />
+          ))}
+
           {showClimate && !minimalMobileRail && (
             <path
               d={samples
@@ -641,6 +654,15 @@ function AltitudeRuler({ currentKm, onDragAltitude, onDragStateChange, compact, 
   const rulerInset = compact ? 14 : 16;  // bottom inset + tick left anchor
   const trackTopY = 46;                  // matches TempProfile padding.top exactly
   const trackH = rulerHeight - trackTopY - rulerInset; // active track span
+  const graphNodes = useMemo(
+    () =>
+      GRAPH_NODE_KMS.map((km) => ({
+        km,
+        bottomOffset: (km / MAX_ALTITUDE_KM) * trackH + rulerInset,
+        isChapter: CHAPTER_BREAK_KMS.includes(km),
+      })),
+    [trackH, rulerInset]
+  );
 
   const eventToAltitude = useCallback((e) => {
     if (!rulerRef.current) return null;
@@ -726,6 +748,25 @@ function AltitudeRuler({ currentKm, onDragAltitude, onDragStateChange, compact, 
             background: "rgba(255,255,255,0.18)",
           }}
         />
+
+        {graphNodes.map((node) => (
+          <div
+            key={`ruler-node-${node.km}`}
+            style={{
+              position: "absolute",
+              bottom: node.bottomOffset,
+              left: compact ? 14 : 17,
+              width: 7,
+              height: 7,
+              borderRadius: "50%",
+              background: node.isChapter ? "rgba(170,220,255,0.96)" : "rgba(255,255,255,0.72)",
+              border: "1px solid rgba(255,255,255,0.55)",
+              transform: "translate(-50%, 50%)",
+              pointerEvents: "none",
+              boxShadow: node.isChapter ? "0 0 0 2px rgba(70,120,180,0.2)" : "none",
+            }}
+          />
+        ))}
 
         {rulerTicks.map((km) => {
           const bottomOffset = (km / MAX_ALTITUDE_KM) * trackH + rulerInset;
@@ -829,14 +870,18 @@ function Stars() {
   const stars = useMemo(
     () => {
       const random = createSeededRandom(101);
-      return Array.from({ length: 80 }, () => ({
-        top: random() * 45,
-        left: random() * 100,
-        size: random() * 2 + 0.5,
-        opacity: random() * 0.6 + 0.1,
-        twinkle: random() * 4 + 2,
-        delay: random() * 3,
-      }));
+      return Array.from({ length: 110 }, () => {
+        const depth = Math.pow(random(), 0.6);
+        return {
+          top: depth * 34,
+          left: random() * 100,
+          size: 0.8 + depth * 2.8 + random() * 1.2,
+          opacity: 0.2 + depth * 0.65 + random() * 0.12,
+          twinkle: random() * 4 + 2,
+          delay: random() * 3,
+          glow: 3 + depth * 7,
+        };
+      });
     },
     []
   );
@@ -854,6 +899,7 @@ function Stars() {
             background: "#fff",
             borderRadius: "50%",
             opacity: s.opacity,
+            boxShadow: `0 0 ${s.glow}px rgba(255,255,255,0.45)`,
             animation: `twinkle ${s.twinkle}s ease-in-out infinite`,
             animationDelay: `${s.delay}s`,
           }}
@@ -1140,8 +1186,16 @@ function KilimanjaroComparison({ compact, phone, oceanHeight }) {
 
 // ─── Main Component ──────────────────────────────────────────────────
 export default function AtmosphereScrolly() {
-  const [viewport, setViewport] = useState({ width: 1280, height: 800 });
-  // Desktop keeps sea level centered; mobile anchors it to the bottom edge.
+  const [viewport, setViewport] = useState(() => {
+    if (typeof window === "undefined") {
+      return { width: 1280, height: 800 };
+    }
+    return {
+      width: window.innerWidth,
+      height: Math.round(window.visualViewport?.height ?? window.innerHeight),
+    };
+  });
+  // Sea level should sit halfway up the visible scene so the ocean fills the lower half.
   const [oceanHeight, setOceanHeight] = useState(400);
   const totalHeight = ATM_HEIGHT + oceanHeight;
   const [currentKm, setCurrentKm] = useState(0);
@@ -1154,14 +1208,11 @@ export default function AtmosphereScrolly() {
   const [hudHeight, setHudHeight] = useState(88);
 
   const getHalfVisibleSceneHeight = useCallback(() => {
-    if (viewport.width < 680) {
-      return 0;
-    }
     if (containerRef.current) {
       return Math.round(containerRef.current.clientHeight / 2);
     }
     return Math.round(Math.max(viewport.height - hudHeight, 0) / 2);
-  }, [viewport.width, viewport.height, hudHeight]);
+  }, [viewport.height, hudHeight]);
 
   useEffect(() => {
     if (typeof document === "undefined") return undefined;
@@ -1179,15 +1230,19 @@ export default function AtmosphereScrolly() {
   // Update on resize
   useEffect(() => {
     const onResize = () => {
-      setViewport({ width: window.innerWidth, height: window.innerHeight });
-      requestAnimationFrame(() => {
-        setOceanHeight(getHalfVisibleSceneHeight());
+      setViewport({
+        width: window.innerWidth,
+        height: Math.round(window.visualViewport?.height ?? window.innerHeight),
       });
     };
     onResize();
     window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, [getHalfVisibleSceneHeight]);
+    window.visualViewport?.addEventListener("resize", onResize);
+    return () => {
+      window.removeEventListener("resize", onResize);
+      window.visualViewport?.removeEventListener("resize", onResize);
+    };
+  }, []);
 
   // ─── Chapter break state ───
   const [activeChapterKm, setActiveChapterKm] = useState(null);
@@ -1199,7 +1254,7 @@ export default function AtmosphereScrolly() {
   const prevCenterKm = useRef(0);
   const prevChapterProgress = useRef(null);
   const chapterActivatedAt = useRef(0);
-  const hasInitialized = useRef(false); // prevent re-init on effect re-run
+  const hasUserNavigated = useRef(false);
   const chapterCooldown = useRef(false); // suppress snap right after chapter closes
   const frozenScrollTop = useRef(null); // scroll position locked during a chapter
   const touchStartY = useRef(null);
@@ -1246,6 +1301,22 @@ export default function AtmosphereScrolly() {
     });
   }, [getHalfVisibleSceneHeight, hudHeight, viewport.height]);
 
+  useEffect(() => {
+    const markNavigated = () => {
+      hasUserNavigated.current = true;
+    };
+
+    window.addEventListener("wheel", markNavigated, { passive: true });
+    window.addEventListener("touchstart", markNavigated, { passive: true });
+    window.addEventListener("keydown", markNavigated);
+
+    return () => {
+      window.removeEventListener("wheel", markNavigated);
+      window.removeEventListener("touchstart", markNavigated);
+      window.removeEventListener("keydown", markNavigated);
+    };
+  }, []);
+
   const clearChapterState = useCallback(() => {
     setActiveChapterKm(null);
     setChapterProgress(0);
@@ -1280,18 +1351,37 @@ export default function AtmosphereScrolly() {
     setCurrentKm(Math.max(0, Math.min(km, MAX_ALTITUDE_KM)));
   }, [oceanHeight]);
 
+  const alignToSeaLevel = useCallback((targetOceanHeight) => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    let attempts = 0;
+    const applyAlignment = () => {
+      const nextEl = containerRef.current;
+      if (!nextEl) return;
+
+      nextEl.scrollTop = nextEl.scrollHeight - nextEl.clientHeight / 2 - targetOceanHeight;
+      attempts += 1;
+
+      if (attempts < 4 && !hasUserNavigated.current) {
+        requestAnimationFrame(applyAlignment);
+        return;
+      }
+
+      updateAltitude();
+    };
+
+    requestAnimationFrame(applyAlignment);
+  }, [updateAltitude]);
+
   // ─── Reset everything ───
   const handleReset = useCallback(() => {
     if (!containerRef.current) return;
     clearChapterState();
-    const el = containerRef.current;
     const targetOceanHeight = getHalfVisibleSceneHeight();
     setOceanHeight(targetOceanHeight);
-    requestAnimationFrame(() => {
-      el.scrollTop = el.scrollHeight - el.clientHeight / 2 - targetOceanHeight;
-      updateAltitude();
-    });
-  }, [clearChapterState, getHalfVisibleSceneHeight, updateAltitude]);
+    alignToSeaLevel(targetOceanHeight);
+  }, [alignToSeaLevel, clearChapterState, getHalfVisibleSceneHeight]);
 
   // ─── Detect boundary crossings at viewport center (both directions) ───
   const centerKm = useMemo(() => {
@@ -1386,8 +1476,10 @@ export default function AtmosphereScrolly() {
     const chapter = CHAPTER_BREAKS[activeChapterKm];
     if (!chapter) return;
 
-    const PIXELS_PER_LINE = 300;
-    const totalDistance = chapter.lines.length * PIXELS_PER_LINE;
+    const wheelPixelsPerLine = 300;
+    const touchPixelsPerLine = Math.max(viewport.height * 1.3, 300);
+    const totalWheelDistance = chapter.lines.length * wheelPixelsPerLine;
+    const totalTouchDistance = chapter.lines.length * touchPixelsPerLine;
 
     const dismissChapter = () => {
       setChapterFadingOut(true);
@@ -1403,7 +1495,7 @@ export default function AtmosphereScrolly() {
       }, 600);
     };
 
-    const advanceChapter = (rawDelta) => {
+    const advanceChapter = (rawDelta, mode = "wheel") => {
       if (Math.abs(rawDelta) === 0) return;
       const now = typeof performance !== "undefined" ? performance.now() : Date.now();
       const activationAge = now - chapterActivatedAt.current;
@@ -1416,6 +1508,7 @@ export default function AtmosphereScrolly() {
         return;
       }
 
+      const totalDistance = mode === "touch" ? totalTouchDistance : totalWheelDistance;
       const progressDelta = Math.abs(rawDelta) / totalDistance;
 
       setChapterProgress((prev) => {
@@ -1458,7 +1551,7 @@ export default function AtmosphereScrolly() {
     const handleWheel = (e) => {
       e.preventDefault();
       e.stopPropagation();
-      advanceChapter(e.deltaY);
+      advanceChapter(e.deltaY, "wheel");
     };
 
     const handleTouchStart = (e) => {
@@ -1474,7 +1567,7 @@ export default function AtmosphereScrolly() {
       // swiping up decreases clientY but should behave like positive wheel input.
       const delta = touchStartY.current - nextY;
       touchStartY.current = nextY;
-      advanceChapter(delta * 1.35);
+      advanceChapter(delta, "touch");
     };
 
     const handleTouchEnd = () => {
@@ -1518,7 +1611,7 @@ export default function AtmosphereScrolly() {
       if (container) container.removeEventListener("touchend", handleTouchEnd);
       if (container) container.removeEventListener("touchcancel", handleTouchEnd);
     };
-  }, [activeChapterKm, chapterFadingOut, chapterDirection]);
+  }, [activeChapterKm, chapterFadingOut, chapterDirection, viewport.height]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -1537,17 +1630,27 @@ export default function AtmosphereScrolly() {
 
     el.addEventListener("scroll", handleScroll, { passive: true });
 
-    // Only initialize scroll position once (not on every re-run)
-    if (!hasInitialized.current) {
-      hasInitialized.current = true;
-      requestAnimationFrame(() => {
-        el.scrollTop = el.scrollHeight - el.clientHeight / 2 - oceanHeight;
-        updateAltitude();
-      });
-    }
-
     return () => el.removeEventListener("scroll", handleScroll);
-  }, [updateAltitude, activeChapterKm, oceanHeight]);
+  }, [updateAltitude, activeChapterKm]);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || activeChapterKm) return;
+
+    if (hasUserNavigated.current) return;
+    alignToSeaLevel(oceanHeight);
+  }, [oceanHeight, viewport.height, hudHeight, activeChapterKm, alignToSeaLevel]);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || activeChapterKm || !hasUserNavigated.current) return;
+
+    const targetPx = altitudeToPixels(currentKm) + oceanHeight;
+    const targetScrollTop = el.scrollHeight - el.clientHeight - targetPx;
+    if (Math.abs(el.scrollTop - targetScrollTop) > 1) {
+      el.scrollTop = targetScrollTop;
+    }
+  }, [oceanHeight, currentKm, activeChapterKm]);
 
   const bgColor = getBackgroundColor(currentKm);
   const temp = getTemperature(currentKm).toFixed(0);
@@ -1568,7 +1671,7 @@ export default function AtmosphereScrolly() {
     <div
       style={{
         width: "100%",
-        height: "100vh",
+        height: viewport.height + "px",
         display: "flex",
         flexDirection: "column",
         fontFamily: "'Open Sans', 'Roboto Mono', sans-serif",
@@ -1650,6 +1753,7 @@ export default function AtmosphereScrolly() {
           */}
           <button
             onClick={handleReset}
+            className="reset-button"
             style={{
               background: "rgba(255,255,255,0.1)",
               border: "1px solid rgba(255,255,255,0.2)",
@@ -1987,6 +2091,11 @@ export default function AtmosphereScrolly() {
         @keyframes twinkle {
           0%, 100% { opacity: var(--base-opacity, 0.3); }
           50% { opacity: 0.05; }
+        }
+        .reset-button:active {
+          background: rgba(255,255,255,0.18) !important;
+          border-color: rgba(255,255,255,0.32) !important;
+          color: rgba(255,255,255,0.82) !important;
         }
         * { scrollbar-width: none; }
         *::-webkit-scrollbar { display: none; }
