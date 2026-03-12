@@ -1,5 +1,5 @@
 {
-  "name": "atmosphere-scroll-vite",
+  "name": "scroll-up",
   "private": true,
   "version": "0.0.1",
   "type": "module",
@@ -9,11 +9,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "npm": "^11.11.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.4",
-    "vite": "^5.4.19"
+    "vite": "^6.4.1"
   }
 }
