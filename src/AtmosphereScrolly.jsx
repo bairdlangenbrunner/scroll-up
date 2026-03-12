@@ -98,7 +98,6 @@ const CHAPTER_BREAKS = {
     lines: [
       "Welcome to the troposphere. This is the lowest layer (the first 10–12 km) of the atmosphere.",
       "As you climb up, temperature decreases, so warmer, less dense air sits under colder, denser air. This leads to convection, like a lava lamp.",
-      //"Temperature drops about 6.5ºC (11.7ºF) for every km you climb. This is called the atmospheric \"lapse rate\".",
       "This convection means that the troposphere is where almost all weather occurs: clouds, rain, turbulence, storms.",
     ],
   },
@@ -344,7 +343,7 @@ function ChapterOverlay({ chapter, progress, lineProgress, passedLines, fadingOu
               opacity: opacity,
               zIndex: t > 0 && t < 1 ? 2 : wasPassed ? 0 : 1,
               willChange: "transform, opacity",
-              transition: compact ? "opacity 90ms linear" : "top 90ms linear, opacity 120ms linear",
+              transition: "opacity 120ms linear",
             }}
           >
             <div
@@ -875,11 +874,11 @@ function Stars() {
         return {
           top: depth * 34,
           left: random() * 100,
-          size: 0.8 + depth * 2.8 + random() * 1.2,
-          opacity: 0.2 + depth * 0.65 + random() * 0.12,
+          size: 1.4 + depth * 4.2 + random() * 1.8,
+          opacity: 0.3 + depth * 0.75 + random() * 0.14,
           twinkle: random() * 4 + 2,
           delay: random() * 3,
-          glow: 3 + depth * 7,
+          glow: 6 + depth * 11,
         };
       });
     },
@@ -1293,7 +1292,7 @@ export default function AtmosphereScrolly() {
     const observer = new ResizeObserver(updateHudHeight);
     observer.observe(hudRef.current);
     return () => observer.disconnect();
-  }, [viewport.width, currentKm]);
+  }, [viewport.width]);
 
   useEffect(() => {
     requestAnimationFrame(() => {
@@ -1348,30 +1347,27 @@ export default function AtmosphereScrolly() {
     const el = containerRef.current;
     const scrollBottom = el.scrollHeight - el.scrollTop - el.clientHeight - oceanHeight;
     const km = pixelsToAltitude(Math.max(0, scrollBottom));
-    setCurrentKm(Math.max(0, Math.min(km, MAX_ALTITUDE_KM)));
+    setCurrentKm((prev) => {
+      const next = Math.max(0, Math.min(km, MAX_ALTITUDE_KM));
+      return next === prev ? prev : next;
+    });
   }, [oceanHeight]);
 
-  const alignToSeaLevel = useCallback((targetOceanHeight) => {
+  const alignToSeaLevel = useCallback((targetOceanHeight, force = false) => {
     const el = containerRef.current;
     if (!el) return;
 
-    let attempts = 0;
-    const applyAlignment = () => {
+    requestAnimationFrame(() => {
       const nextEl = containerRef.current;
       if (!nextEl) return;
-
-      nextEl.scrollTop = nextEl.scrollHeight - nextEl.clientHeight / 2 - targetOceanHeight;
-      attempts += 1;
-
-      if (attempts < 4 && !hasUserNavigated.current) {
-        requestAnimationFrame(applyAlignment);
+      // Don't fight the user's scroll unless explicitly forced (e.g. Reset button).
+      if (!force && hasUserNavigated.current) {
+        updateAltitude();
         return;
       }
-
+      nextEl.scrollTop = nextEl.scrollHeight - nextEl.clientHeight / 2 - targetOceanHeight;
       updateAltitude();
-    };
-
-    requestAnimationFrame(applyAlignment);
+    });
   }, [updateAltitude]);
 
   // ─── Reset everything ───
@@ -1380,7 +1376,7 @@ export default function AtmosphereScrolly() {
     clearChapterState();
     const targetOceanHeight = getHalfVisibleSceneHeight();
     setOceanHeight(targetOceanHeight);
-    alignToSeaLevel(targetOceanHeight);
+    alignToSeaLevel(targetOceanHeight, true);
   }, [alignToSeaLevel, clearChapterState, getHalfVisibleSceneHeight]);
 
   // ─── Detect boundary crossings at viewport center (both directions) ───
@@ -1477,13 +1473,20 @@ export default function AtmosphereScrolly() {
     if (!chapter) return;
 
     const wheelPixelsPerLine = 300;
-    const touchPixelsPerLine = Math.max(viewport.height * 1.3, 300);
+    const touchPixelsPerLine = Math.max(viewport.height * 0.8, 250);
     const totalWheelDistance = chapter.lines.length * wheelPixelsPerLine;
     const totalTouchDistance = chapter.lines.length * touchPixelsPerLine;
 
     const dismissChapter = () => {
       setChapterFadingOut(true);
       chapterCooldown.current = true;
+      prevCenterKm.current = activeChapterKm;
+      // Nudge scroll slightly past the boundary in the travel direction so
+      // the user isn't left frozen exactly at it after the chapter ends.
+      if (containerRef.current && frozenScrollTop.current !== null) {
+        containerRef.current.scrollTop =
+          frozenScrollTop.current + (chapterDirection === "up" ? -80 : 80);
+      }
       frozenScrollTop.current = null;
       chapterActivatedAt.current = 0;
       setTimeout(() => {
@@ -1491,7 +1494,7 @@ export default function AtmosphereScrolly() {
         setChapterFadingOut(false);
         setTimeout(() => {
           chapterCooldown.current = false;
-        }, 800);
+        }, 300);
       }, 600);
     };
 
@@ -1504,7 +1507,7 @@ export default function AtmosphereScrolly() {
         (chapterDirection === "down" && rawDelta > 0);
 
       // Ignore residual momentum from the scroll that triggered the chapter.
-      if (activationAge < 220 && enteredForward) {
+      if (activationAge < 100 && enteredForward) {
         return;
       }
 
@@ -1544,7 +1547,8 @@ export default function AtmosphereScrolly() {
           return 1;
         }
 
-        return Math.max(0, Math.min(1, next));
+        const clamped = Math.max(0, Math.min(1, next));
+        return clamped === prev ? prev : clamped;
       });
     };
 
@@ -1567,7 +1571,12 @@ export default function AtmosphereScrolly() {
       // swiping up decreases clientY but should behave like positive wheel input.
       const delta = touchStartY.current - nextY;
       touchStartY.current = nextY;
-      advanceChapter(delta, "touch");
+      const magnitude = Math.abs(delta);
+      const adjustedDelta =
+        Math.sign(delta) *
+        Math.max(0, magnitude - 6) *
+        (magnitude > 20 ? 1 + (magnitude - 20) / 36 : 1);
+      advanceChapter(adjustedDelta, "touch");
     };
 
     const handleTouchEnd = () => {
@@ -1588,13 +1597,13 @@ export default function AtmosphereScrolly() {
 
     const container = containerRef.current;
     window.addEventListener("wheel", handleWheel, { passive: false });
-    window.addEventListener("touchstart", handleTouchStart, { passive: true });
+    window.addEventListener("touchstart", handleTouchStart, { passive: false });
     window.addEventListener("touchmove", handleTouchMove, { passive: false });
     window.addEventListener("touchend", handleTouchEnd, { passive: true });
     window.addEventListener("touchcancel", handleTouchEnd, { passive: true });
     window.addEventListener("keydown", handleKeyDown);
     if (container) container.addEventListener("wheel", handleWheel, { passive: false });
-    if (container) container.addEventListener("touchstart", handleTouchStart, { passive: true });
+    if (container) container.addEventListener("touchstart", handleTouchStart, { passive: false });
     if (container) container.addEventListener("touchmove", handleTouchMove, { passive: false });
     if (container) container.addEventListener("touchend", handleTouchEnd, { passive: true });
     if (container) container.addEventListener("touchcancel", handleTouchEnd, { passive: true });
@@ -1618,11 +1627,11 @@ export default function AtmosphereScrolly() {
     if (!el) return;
 
     const handleScroll = () => {
-      if (activeChapterKm) {
-        // Freeze scroll position at the boundary while chapter is active
-        if (frozenScrollTop.current !== null && containerRef.current) {
-          containerRef.current.scrollTop = frozenScrollTop.current;
-        }
+      // frozenScrollTop is a ref so this always reads the latest value —
+      // altitude display unfreezes the instant frozenScrollTop is cleared,
+      // not 600 ms later when activeChapterKm finally clears.
+      if (frozenScrollTop.current !== null && containerRef.current) {
+        containerRef.current.scrollTop = frozenScrollTop.current;
         return;
       }
       updateAltitude();
@@ -1631,7 +1640,7 @@ export default function AtmosphereScrolly() {
     el.addEventListener("scroll", handleScroll, { passive: true });
 
     return () => el.removeEventListener("scroll", handleScroll);
-  }, [updateAltitude, activeChapterKm]);
+  }, [updateAltitude]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -1639,7 +1648,7 @@ export default function AtmosphereScrolly() {
 
     if (hasUserNavigated.current) return;
     alignToSeaLevel(oceanHeight);
-  }, [oceanHeight, viewport.height, hudHeight, activeChapterKm, alignToSeaLevel]);
+  }, [oceanHeight, activeChapterKm, alignToSeaLevel]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -1794,7 +1803,7 @@ export default function AtmosphereScrolly() {
           overflowY: "auto",
           overflowX: "hidden",
           background: bgColor,
-          transition: "background 0.4s ease",
+          transition: "background 0.15s ease",
           position: "relative",
           width: "100%",
           ...behindChapterStyle,
