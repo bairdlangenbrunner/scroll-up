@@ -96,7 +96,7 @@ const landmarks = [
   { km: 475, label: "Radiation intensifies", detail: "The inner Van Allen belt begins to encroach here; astronauts accumulate roughly 10× the annual radiation dose of people on the ground, even inside a shielded spacecraft" },
   { km: 500, label: "Thermopause", detail: "Above here is the exosphere, where the atmosphere fades into the vacuum of space", isBoundary: true },
   { km: 525, label: "Molecules in free flight", detail: "Air is so diffuse here that individual molecules can travel hundreds of kilometers before colliding with another; the classical idea of \"air\" is dissolving into interplanetary space" },
-  { km: 550, label: "Almost space, still atmosphere", detail: "The air is extraordinarily sparse here, but the Earth's atmosphere still has not cleanly ended; you'd have to go about 20x the distance you just traveled to reach the edge of the exosphere" },
+  { km: 550, label: "Almost space, still atmosphere", detail: "The air is extraordinarily sparse here, but the Earth's atmosphere still has not cleanly ended; you'd have to go about 18x the distance you just traveled to reach the edge of the exosphere" },
 ];
 
 
