@@ -1234,7 +1234,6 @@ export default function AtmosphereScrolly() {
   const hasUserNavigated = useRef(false);
   const chapterCooldown = useRef(false); // suppress snap right after chapter closes
   const frozenScrollTop = useRef(null); // scroll position locked during a chapter
-  const touchStartY = useRef(null);
 
   const activeChapter = activeChapterKm ? CHAPTER_BREAKS[activeChapterKm] : null;
   const isScaleDragging = isTempDragging || isRulerDragging;
@@ -1376,8 +1375,8 @@ export default function AtmosphereScrolly() {
       const direction = crossedUp ? "up" : crossedDown ? "down" : null;
       if (!direction) continue;
 
-      // Snap scroll to exactly the boundary position and freeze it there
-      if (containerRef.current) {
+      // Snap scroll to exactly the boundary position and freeze it there (desktop only)
+      if (containerRef.current && !isPhone) {
         const el = containerRef.current;
         const boundaryScrollTop = el.scrollHeight - el.clientHeight - (altitudeToPixels(bKm) + oceanHeight) + el.clientHeight / 2;
         el.scrollTop = boundaryScrollTop;
@@ -1394,7 +1393,7 @@ export default function AtmosphereScrolly() {
     }
 
     prevCenterKm.current = centerKm;
-  }, [centerKm, activeChapterKm, isScaleDragging, oceanHeight]);
+  }, [centerKm, activeChapterKm, isScaleDragging, oceanHeight, isPhone]);
 
   useEffect(() => {
     if (!isScaleDragging || !activeChapterKm) return;
@@ -1412,28 +1411,21 @@ export default function AtmosphereScrolly() {
     frozenScrollTop.current = null;
   }, [isScaleDragging, centerKm]);
 
-  // ─── Handle wheel events during chapter overlay (continuous, direction-aware) ───
+  // ─── Handle chapter overlay input (wheel/keyboard on desktop, auto-play on mobile) ───
   useEffect(() => {
     if (!activeChapterKm || chapterFadingOut) return;
 
     const chapter = CHAPTER_BREAKS[activeChapterKm];
     if (!chapter) return;
 
-    const wheelPixelsPerLine = 300;
-    const touchPixelsPerLine = Math.max(viewport.height * 0.8, 250);
-    const totalWheelDistance = chapter.lines.length * wheelPixelsPerLine;
-    const totalTouchDistance = chapter.lines.length * touchPixelsPerLine;
-
     const dismissChapter = () => {
       setChapterFadingOut(true);
       chapterCooldown.current = true;
       prevCenterKm.current = activeChapterKm;
-      // Nudge scroll slightly past the boundary in the travel direction so
-      // the user isn't left frozen exactly at it after the chapter ends.
-      if (containerRef.current && frozenScrollTop.current !== null) {
+      if (!isPhone && containerRef.current && frozenScrollTop.current !== null) {
         containerRef.current.scrollTop =
           frozenScrollTop.current + (chapterDirection === "up" ? -80 : 80);
-        containerRef.current.style.touchAction = ""; // re-enable native scroll
+        containerRef.current.style.touchAction = "";
       }
       frozenScrollTop.current = null;
       chapterActivatedAt.current = 0;
@@ -1446,7 +1438,36 @@ export default function AtmosphereScrolly() {
       }, 600);
     };
 
-    const advanceChapter = (rawDelta, mode = "wheel") => {
+    // ── Mobile: auto-play chapter text, no scroll interference ──
+    if (isPhone) {
+      const msPerLine = 1800;
+      const totalMs = chapter.lines.length * msPerLine;
+      const startProgress = chapterDirection === "up" ? 0 : 1;
+      const startTime = typeof performance !== "undefined" ? performance.now() : Date.now();
+
+      let rafId;
+      const tick = () => {
+        const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+        const elapsed = now - startTime;
+        const rawProgress = elapsed / totalMs;
+        const progress = chapterDirection === "up" ? rawProgress : 1 - rawProgress;
+        setChapterProgress(Math.max(0, Math.min(1, progress)));
+        if (rawProgress >= 1) {
+          dismissChapter();
+          return;
+        }
+        rafId = requestAnimationFrame(tick);
+      };
+      setChapterProgress(startProgress);
+      rafId = requestAnimationFrame(tick);
+      return () => cancelAnimationFrame(rafId);
+    }
+
+    // ── Desktop: wheel + keyboard input ──
+    const wheelPixelsPerLine = 300;
+    const totalWheelDistance = chapter.lines.length * wheelPixelsPerLine;
+
+    const advanceChapter = (rawDelta) => {
       if (Math.abs(rawDelta) === 0) return;
       const now = typeof performance !== "undefined" ? performance.now() : Date.now();
       const activationAge = now - chapterActivatedAt.current;
@@ -1455,28 +1476,20 @@ export default function AtmosphereScrolly() {
         (chapterDirection === "down" && rawDelta > 0);
 
       // Ignore residual wheel momentum from the scroll that triggered the chapter.
-      // Skip this guard for touch — touch events only fire while a finger is moving,
-      // so there's no equivalent momentum to eat.
-      if (activationAge < 100 && enteredForward && mode !== "touch") {
-        return;
-      }
+      if (activationAge < 100 && enteredForward) return;
 
-      const totalDistance = mode === "touch" ? totalTouchDistance : totalWheelDistance;
-      const progressDelta = Math.abs(rawDelta) / totalDistance;
+      const progressDelta = Math.abs(rawDelta) / totalWheelDistance;
 
       setChapterProgress((prev) => {
         let next;
         if (chapterDirection === "up") {
-          // Entered going up: scroll-up (negative deltaY) advances, scroll-down retreats
           next = rawDelta < 0 ? prev + progressDelta : prev - progressDelta;
         } else {
-          // Entered going down: scroll-down (positive deltaY) advances (reverse playback), scroll-up retreats
           next = rawDelta > 0 ? prev - progressDelta : prev + progressDelta;
         }
 
         next = Math.max(-0.05, Math.min(1.05, next));
 
-        // Completed forward (progress >= 1 going up, or progress <= 0 going down)
         if (chapterDirection === "up" && next >= 1.0 && prev < 1.0) {
           dismissChapter();
           return Math.min(1, next);
@@ -1485,13 +1498,10 @@ export default function AtmosphereScrolly() {
           dismissChapter();
           return Math.max(0, next);
         }
-
-        // Allow backing out: if going up and progress drops below 0, dismiss back down
         if (chapterDirection === "up" && next <= 0.0 && prev > 0.0) {
           dismissChapter();
           return 0;
         }
-        // If going down and progress rises above 1, dismiss back up
         if (chapterDirection === "down" && next >= 1.0 && prev < 1.0) {
           dismissChapter();
           return 1;
@@ -1505,71 +1515,26 @@ export default function AtmosphereScrolly() {
     const handleWheel = (e) => {
       e.preventDefault();
       e.stopPropagation();
-      advanceChapter(e.deltaY, "wheel");
-    };
-
-    let lastTouchDelta = 0;
-
-    const handleTouchStart = (e) => {
-      touchStartY.current = e.touches[0]?.clientY ?? null;
-      lastTouchDelta = 0;
-    };
-
-    const handleTouchMove = (e) => {
-      const nextY = e.touches[0]?.clientY;
-      if (touchStartY.current === null || nextY == null) return;
-      e.preventDefault();
-      e.stopPropagation();
-      // Swiping up decreases clientY — invert so upward swipe = positive advance.
-      const delta = touchStartY.current - nextY;
-      touchStartY.current = nextY;
-      lastTouchDelta = delta;
-      advanceChapter(delta, "touch");
-    };
-
-    const handleTouchEnd = () => {
-      // Momentum kick: project the last frame's velocity forward so the user
-      // doesn't need to hold their finger down to advance the chapter.
-      if (Math.abs(lastTouchDelta) > 2) {
-        advanceChapter(lastTouchDelta * 4, "touch");
-      }
-      touchStartY.current = null;
-      lastTouchDelta = 0;
+      advanceChapter(e.deltaY);
     };
 
     const handleKeyDown = (e) => {
-      if (!["ArrowUp", "ArrowDown", "PageUp", "PageDown", " ", "Spacebar"].includes(e.key)) {
-        return;
-      }
+      if (!["ArrowUp", "ArrowDown", "PageUp", "PageDown", " ", "Spacebar"].includes(e.key)) return;
       e.preventDefault();
-      const delta =
-        e.key === "ArrowUp" || e.key === "PageUp"
-          ? -120
-          : 120;
+      const delta = e.key === "ArrowUp" || e.key === "PageUp" ? -120 : 120;
       advanceChapter(delta);
     };
 
     const container = containerRef.current;
-    // Wheel and keyboard on window so they fire even when focus is outside the container.
     window.addEventListener("wheel", handleWheel, { passive: false });
     window.addEventListener("keydown", handleKeyDown);
-    // Touch listeners scoped to the container only — putting { passive: false } on
-    // window touchstart blocks the browser's entire scroll pipeline globally.
     if (container) container.addEventListener("wheel", handleWheel, { passive: false });
-    if (container) container.addEventListener("touchstart", handleTouchStart, { passive: false });
-    if (container) container.addEventListener("touchmove", handleTouchMove, { passive: false });
-    if (container) container.addEventListener("touchend", handleTouchEnd, { passive: true });
-    if (container) container.addEventListener("touchcancel", handleTouchEnd, { passive: true });
     return () => {
       window.removeEventListener("wheel", handleWheel);
       window.removeEventListener("keydown", handleKeyDown);
       if (container) container.removeEventListener("wheel", handleWheel);
-      if (container) container.removeEventListener("touchstart", handleTouchStart);
-      if (container) container.removeEventListener("touchmove", handleTouchMove);
-      if (container) container.removeEventListener("touchend", handleTouchEnd);
-      if (container) container.removeEventListener("touchcancel", handleTouchEnd);
     };
-  }, [activeChapterKm, chapterFadingOut, chapterDirection, viewport.height]);
+  }, [activeChapterKm, chapterFadingOut, chapterDirection, isPhone, viewport.height]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -1579,7 +1544,8 @@ export default function AtmosphereScrolly() {
       // frozenScrollTop is a ref so this always reads the latest value —
       // altitude display unfreezes the instant frozenScrollTop is cleared,
       // not 600 ms later when activeChapterKm finally clears.
-      if (frozenScrollTop.current !== null && containerRef.current) {
+      // On mobile we never freeze scroll, so skip this check entirely.
+      if (!isPhone && frozenScrollTop.current !== null && containerRef.current) {
         containerRef.current.scrollTop = frozenScrollTop.current;
         return;
       }
@@ -1589,7 +1555,7 @@ export default function AtmosphereScrolly() {
     el.addEventListener("scroll", handleScroll, { passive: true });
 
     return () => el.removeEventListener("scroll", handleScroll);
-  }, [updateAltitude]);
+  }, [updateAltitude, isPhone]);
 
   useEffect(() => {
     const el = containerRef.current;
