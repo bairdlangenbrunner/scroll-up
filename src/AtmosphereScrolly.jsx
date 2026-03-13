@@ -857,9 +857,10 @@ function AltitudeRuler({ currentKm, onDragAltitude, onDragStateChange, compact, 
 }
 
 // ─── UFO ─────────────────────────────────────────────────────────────
-function PixelUFO({ oceanHeight }) {
-  // Midpoint of the 400px buffer zone above the 550km line
-  const bottom = altitudeToPixels(MAX_ALTITUDE_KM) + oceanHeight + 200;
+function PixelUFO({ oceanHeight, isPhone, hudHeight }) {
+  // Midpoint of the 400px buffer zone above the 550km line.
+  // On mobile, shift down by the HUD height so it isn't hidden behind it.
+  const bottom = altitudeToPixels(MAX_ALTITUDE_KM) + oceanHeight + 200 - (isPhone ? hudHeight : 0);
   return (
     <div
       style={{
@@ -1323,6 +1324,7 @@ const StaticAtmosphereScene = memo(function StaticAtmosphereScene({
   isCompact,
   contentRight,
   desktopLabelInset,
+  hudHeight,
 }) {
   return (
     <>
@@ -1509,7 +1511,7 @@ const StaticAtmosphereScene = memo(function StaticAtmosphereScene({
       <EverestComparison compact={isCompact} phone={isPhone} oceanHeight={oceanHeight} />
       <BurjComparison compact={isCompact} phone={isPhone} oceanHeight={oceanHeight} />
       <Stars />
-      <PixelUFO oceanHeight={oceanHeight} />
+      <PixelUFO oceanHeight={oceanHeight} isPhone={isPhone} hudHeight={hudHeight} />
 
     </>
   );
@@ -1950,6 +1952,7 @@ export default function AtmosphereScrolly() {
                 isCompact={isCompact}
                 contentRight={contentRight}
                 desktopLabelInset={desktopLabelInset}
+                hudHeight={hudHeight}
               />
               <CruisingPlanes currentKm={currentKm} topVisibleKm={topVisibleKm} oceanHeight={oceanHeight} />
             </div>
