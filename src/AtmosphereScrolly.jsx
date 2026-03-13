@@ -998,6 +998,109 @@ function PixelJellyfish({ oceanHeight, left = "68%", bottomFraction = 0.62, widt
   );
 }
 
+// ─── Pixel ISS (408 km) ──────────────────────────────────────────────
+function PixelISS({ oceanHeight }) {
+  return (
+    <div
+      style={{
+        position: "absolute",
+        left: "54%",
+        bottom: altitudeToPixels(408) + oceanHeight + 20,
+        transform: "translateX(-50%)",
+        pointerEvents: "none",
+        zIndex: 3,
+        opacity: 0.92,
+        animation: "iss-float 6s ease-in-out infinite",
+      }}
+    >
+      <style>{`
+        @keyframes iss-float {
+          0%, 100% { transform: translateX(-50%) translateY(0px); }
+          50%       { transform: translateX(-50%) translateY(-14px); }
+        }
+      `}</style>
+      <svg width="110" height="50" viewBox="0 0 110 50" shapeRendering="crispEdges" aria-hidden="true">
+        {/* ── Main truss (horizontal backbone) ── */}
+        <rect x="0"  y="20" width="110" height="6"  fill="#9aa4b2" />
+        <rect x="0"  y="24" width="110" height="2"  fill="#7a848f" />
+
+        {/* ── Far-left solar array (top + bottom) ── */}
+        <rect x="2"  y="2"  width="20" height="16" fill="#1a3060" />
+        <rect x="2"  y="28" width="20" height="16" fill="#1a3060" />
+        {/* cell lines */}
+        <g fill="#243878">
+          <rect x="8"  y="2"  width="2" height="16" />
+          <rect x="14" y="2"  width="2" height="16" />
+          <rect x="8"  y="28" width="2" height="16" />
+          <rect x="14" y="28" width="2" height="16" />
+        </g>
+        <rect x="2"  y="2"  width="20" height="2"  fill="#2a4888" />
+        <rect x="2"  y="28" width="20" height="2"  fill="#2a4888" />
+
+        {/* ── Near-left solar array ── */}
+        <rect x="26" y="6"  width="14" height="12" fill="#1a3060" />
+        <rect x="26" y="28" width="14" height="12" fill="#1a3060" />
+        <g fill="#243878">
+          <rect x="31" y="6"  width="2" height="12" />
+          <rect x="31" y="28" width="2" height="12" />
+        </g>
+        <rect x="26" y="6"  width="14" height="2"  fill="#2a4888" />
+        <rect x="26" y="28" width="14" height="2"  fill="#2a4888" />
+
+        {/* ── Central module cluster ── */}
+        <rect x="42" y="8"  width="26" height="8"  fill="#cdd7e2" /> {/* upper stack */}
+        <rect x="40" y="16" width="30" height="12" fill="#c2ccd8" /> {/* main lab */}
+        <rect x="42" y="28" width="26" height="8"  fill="#cdd7e2" /> {/* lower stack */}
+        {/* highlights */}
+        <rect x="42" y="8"  width="26" height="2"  fill="#e2ecf8" />
+        <rect x="42" y="28" width="26" height="2"  fill="#e2ecf8" />
+        {/* module shadows */}
+        <rect x="40" y="26" width="30" height="2"  fill="#a8b2be" />
+        {/* Cupola / windows */}
+        <g fill="#7ab0d0">
+          <rect x="49" y="18" width="4" height="4" />
+          <rect x="55" y="18" width="4" height="4" />
+        </g>
+        <g fill="#c0e0f8">
+          <rect x="50" y="19" width="2" height="2" />
+          <rect x="56" y="19" width="2" height="2" />
+        </g>
+        {/* thermal radiator panels beside modules */}
+        <g fill="#dce8f2">
+          <rect x="36" y="13" width="4" height="8" />
+          <rect x="70" y="13" width="4" height="8" />
+        </g>
+        <g fill="#b8ccd8">
+          <rect x="36" y="19" width="4" height="2" />
+          <rect x="70" y="19" width="4" height="2" />
+        </g>
+
+        {/* ── Near-right solar array ── */}
+        <rect x="70" y="6"  width="14" height="12" fill="#1a3060" />
+        <rect x="70" y="28" width="14" height="12" fill="#1a3060" />
+        <g fill="#243878">
+          <rect x="77" y="6"  width="2" height="12" />
+          <rect x="77" y="28" width="2" height="12" />
+        </g>
+        <rect x="70" y="6"  width="14" height="2"  fill="#2a4888" />
+        <rect x="70" y="28" width="14" height="2"  fill="#2a4888" />
+
+        {/* ── Far-right solar array ── */}
+        <rect x="88" y="2"  width="20" height="16" fill="#1a3060" />
+        <rect x="88" y="28" width="20" height="16" fill="#1a3060" />
+        <g fill="#243878">
+          <rect x="94" y="2"  width="2" height="16" />
+          <rect x="100" y="2" width="2" height="16" />
+          <rect x="94" y="28" width="2" height="16" />
+          <rect x="100" y="28" width="2" height="16" />
+        </g>
+        <rect x="88" y="2"  width="20" height="2"  fill="#2a4888" />
+        <rect x="88" y="28" width="20" height="2"  fill="#2a4888" />
+      </svg>
+    </div>
+  );
+}
+
 // ─── Stars ───────────────────────────────────────────────────────────
 function Stars() {
   const stars = useMemo(
@@ -1715,6 +1818,7 @@ const StaticAtmosphereScene = memo(function StaticAtmosphereScene({
       <PixelJellyfish oceanHeight={oceanHeight} left="44%" bottomFraction={0.55} width={30} height={41} delay="-1.2s" />
       <PixelJellyfish oceanHeight={oceanHeight} left="68%" bottomFraction={0.62} width={38} height={52} delay="0s" />
       <PixelJellyfish oceanHeight={oceanHeight} left="82%" bottomFraction={0.48} width={24} height={33} delay="-2.6s" />
+      <PixelISS oceanHeight={oceanHeight} />
       <Stars />
       <PixelUFO oceanHeight={oceanHeight} isPhone={isPhone} hudHeight={hudHeight} />
 
