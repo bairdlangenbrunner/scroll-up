@@ -79,24 +79,24 @@ const landmarks = [
   { km: 85, label: "Mesopause", detail: "The coldest point in the atmosphere: around −90°C (−130°F)", isBoundary: true },
   { km: 100, label: "Kármán line", detail: "The internationally recognized edge of space" },
   { km: 110, label: "Auroras begin", detail: "Northern and southern lights shimmer from ~110–500 km" },
-  { km: 125, label: "Turbopause", detail: "Below this line, turbulent winds keep all atmospheric gases uniformly mixed. Above it, each gas separates by molecular weight — lighter atoms float up, heavier ones sink." },
+  { km: 125, label: "Turbopause", detail: "Below this line, turbulent winds keep all atmospheric gases uniformly mixed; above it, each gas separates by molecular weight, lighter atoms float up, heavier ones sink" },
   { km: 150, label: "Atomic oxygen zone", detail: "Single oxygen atoms become common here and can slowly erode spacecraft surfaces" },
-  { km: 175, label: "Days to reentry", detail: "Atmospheric drag here is faint but relentless. A satellite at this altitude without thrust will spiral back into the atmosphere within days." },
-  { km: 200, label: "Very low Earth orbit", detail: "Satellites this low lose altitude quickly because the atmosphere still creates measurable drag" },
-  { km: 225, label: "One-trillionth sea level pressure", detail: "Air density here is roughly one-trillionth of sea level — thinner than the best laboratory vacuums achievable a century ago." },
+  { km: 175, label: "Days to reentry", detail: "Without regular boosts, an object this low can drop out of orbit within days" },
+  { km: 200, label: "Very low Earth orbit", detail: "This is the threshold of VLEO, a region explored for sharper satellite imagery, lower latency (return orbit), and just enough air for aerodynamics to still work" },
+  { km: 225, label: "One-trillionth sea level pressure", detail: "Air density here is roughly one-trillionth of sea level, thinner than the best laboratory vacuums achievable a century ago" },
   { km: 250, label: "Upper thermosphere", detail: "\"Temperature\" only really describes how fast particles are moving here, not how warm it would feel to your body" },
-  { km: 275, label: "Atomic oxygen erosion", detail: "Highly reactive atomic oxygen at these altitudes slowly etches spacecraft surfaces, degrading solar panels and thermal coatings over months and years." },
+  { km: 275, label: "Atomic oxygen erosion", detail: "Highly reactive atomic oxygen at these altitudes slowly etches spacecraft surfaces, degrading solar panels and thermal coatings over months and years" },
   { km: 300, label: "Auroral peak activity", detail: "Some of the brightest auroral curtains and arcs form in this altitude range" },
-  { km: 325, label: "Red aurora crown", detail: "The deep crimson glow at the top of tall auroral rays forms here — oxygen atoms energized by solar electrons, radiating at 630 nm before slowly cooling." },
+  { km: 325, label: "Red aurora crown", detail: "The deep crimson glow at the top of tall auroral rays forms here; oxygen atoms, energized by solar electrons, radiate at 630 nm before slowly cooling" },
   { km: 350, label: "Orbital drag still matters", detail: "Even here, trace atmosphere steadily slows satellites unless they boost their orbit" },
-  { km: 375, label: "Still falling", detail: "Gravity here is about 88% of surface gravity. Astronauts feel weightless not because gravity is absent, but because they are in continuous free fall around Earth — always falling, never landing." },
-  { km: 408, label: "International Space Station", detail: "Orbiting at ~408 km — still technically in the atmosphere" },
-  { km: 425, label: "Polar orbit band", detail: "Polar-orbiting satellites here circle Earth from pole to pole every ~93 minutes, scanning the entire planet's surface within 24 hours. Most weather and Earth-observation satellites operate in this band." },
+  { km: 375, label: "Still falling", detail: "Gravity here is about 88% of surface gravity; astronauts feel weightless not because gravity is absent, but because they are in continuous free fall around Earth, always falling, never landing" },
+  { km: 408, label: "International Space Station", detail: "Orbiting at ~408 km, still technically in the atmosphere" },
+  { km: 425, label: "Polar orbit band", detail: "Polar-orbiting satellites here circle Earth from pole to pole every ~93 minutes, scanning the entire planet's surface within 24 hours; most weather and Earth-observation satellites operate in this band" },
   { km: 450, label: "Exosphere starts to dominate", detail: "Molecules can travel long distances without colliding, and some escape Earth altogether" },
-  { km: 475, label: "Radiation intensifies", detail: "The inner Van Allen belt begins to encroach here. Astronauts accumulate roughly 10× the annual radiation dose of people on the ground, even inside a shielded spacecraft." },
-  { km: 500, label: "Thermopause", detail: "Above here is the exosphere, where the atmosphere fades into the vacuum of space.", isBoundary: true },
-  { km: 525, label: "Molecules in free flight", detail: "Air is so diffuse here that individual molecules can travel hundreds of kilometers before colliding with another. The classical idea of \"air\" is dissolving into interplanetary space." },
-  { km: 550, label: "Almost space, still atmosphere", detail: "The air here is extraordinarily sparse, but the atmosphere still has not cleanly ended" },
+  { km: 475, label: "Radiation intensifies", detail: "The inner Van Allen belt begins to encroach here; astronauts accumulate roughly 10× the annual radiation dose of people on the ground, even inside a shielded spacecraft" },
+  { km: 500, label: "Thermopause", detail: "Above here is the exosphere, where the atmosphere fades into the vacuum of space", isBoundary: true },
+  { km: 525, label: "Molecules in free flight", detail: "Air is so diffuse here that individual molecules can travel hundreds of kilometers before colliding with another; the classical idea of \"air\" is dissolving into interplanetary space" },
+  { km: 550, label: "Almost space, still atmosphere", detail: "The air is extraordinarily sparse here, but the Earth's atmosphere still has not cleanly ended; you'd have to go about 20x the distance you just traveled to reach the edge of the exosphere" },
 ];
 
 
@@ -154,9 +154,8 @@ const CHAPTER_BREAKS = {
   500: {
     lines: [
       "You've reached the thermopause — the top of the thermosphere, around 500 km up.",
-      "Above here is the exosphere, where the atmosphere fades into the vacuum of space.",
-      "Molecules are so sparse they rarely collide. They simply drift, escape, or fall back toward Earth.",
-      "There is no sharp edge where the atmosphere ends. It just thins, and thins, until space begins.",
+      "Its height shifts depending on solar activity, from about 200 km during quiet sun conditions to about 500 km when the sun is more active.",
+      "It's therefore more of a moving frontier than a hard shell."
     ],
   },
 };
@@ -1028,7 +1027,7 @@ function PixelISS({ oceanHeight }) {
           50%       { transform: translateX(-50%) translateY(-14px); }
         }
       `}</style>
-      <svg width="110" height="50" viewBox="0 0 110 50" shapeRendering="crispEdges" aria-hidden="true">
+      <svg width="165" height="75" viewBox="0 0 110 50" shapeRendering="crispEdges" aria-hidden="true">
         {/* ── Main truss (horizontal backbone) ── */}
         <rect x="0"  y="20" width="110" height="6"  fill="#9aa4b2" />
         <rect x="0"  y="24" width="110" height="2"  fill="#7a848f" />
@@ -1105,6 +1104,186 @@ function PixelISS({ oceanHeight }) {
         </g>
         <rect x="88" y="2"  width="20" height="2"  fill="#2a4888" />
         <rect x="88" y="28" width="20" height="2"  fill="#2a4888" />
+      </svg>
+    </div>
+  );
+}
+
+function PixelSatellite({
+  oceanHeight,
+  km,
+  left,
+  scale = 1,
+  opacity = 0.92,
+  delay = "0s",
+  duration = "18s",
+}) {
+  const width = 68 * scale;
+  const height = 36 * scale;
+
+  return (
+    <div
+      style={{
+        position: "absolute",
+        left,
+        bottom: altitudeToPixels(km) + oceanHeight,
+        width,
+        height,
+        transform: "translateX(-50%)",
+        transformOrigin: "center",
+        pointerEvents: "none",
+        zIndex: 4,
+        opacity,
+        animation: `satellite-orbit ${duration} linear infinite`,
+        animationDelay: delay,
+      }}
+    >
+      <style>{`
+        @keyframes satellite-orbit {
+          0% { transform: translateX(-50%) translateX(-12vw); }
+          100% { transform: translateX(-50%) translateX(12vw); }
+        }
+      `}</style>
+      <svg
+        width={width}
+        height={height}
+        viewBox="0 0 68 36"
+        shapeRendering="crispEdges"
+        aria-hidden="true"
+      >
+        <rect x="0" y="8" width="18" height="8" fill="#183766" />
+        <rect x="50" y="20" width="18" height="8" fill="#183766" />
+        <g fill="#2c5a96">
+          <rect x="4" y="8" width="2" height="8" />
+          <rect x="9" y="8" width="2" height="8" />
+          <rect x="14" y="8" width="2" height="8" />
+          <rect x="54" y="20" width="2" height="8" />
+          <rect x="59" y="20" width="2" height="8" />
+          <rect x="64" y="20" width="2" height="8" />
+        </g>
+        <rect x="18" y="11" width="11" height="2" fill="#8d98a5" />
+        <rect x="39" y="23" width="11" height="2" fill="#8d98a5" />
+        <rect x="26" y="9" width="16" height="16" fill="#cfd7e3" />
+        <rect x="28" y="11" width="12" height="4" fill="#e8f0fb" />
+        <rect x="28" y="15" width="12" height="8" fill="#aab6c5" />
+        <rect x="22" y="14" width="4" height="6" fill="#dbe4ee" />
+        <rect x="42" y="14" width="4" height="6" fill="#dbe4ee" />
+        <rect x="31" y="6" width="4" height="3" fill="#e3c56c" />
+        <rect x="32" y="4" width="2" height="2" fill="#f6dea0" />
+        <rect x="33" y="25" width="2" height="5" fill="#909aa8" />
+        <rect x="30" y="30" width="8" height="2" fill="#7a848f" />
+      </svg>
+    </div>
+  );
+}
+
+function PolarOrbitSatellites({ oceanHeight }) {
+  const satellites = [
+    { id: "primary", km: 425, left: "50%", scale: 1, opacity: 0.95, duration: "19s", delay: "0s" },
+    { id: "trail-1", km: 423.5, left: "62%", scale: 0.82, opacity: 0.82, duration: "16s", delay: "-5.2s" },
+    { id: "trail-2", km: 429, left: "38%", scale: 0.68, opacity: 0.74, duration: "21s", delay: "-9.1s" },
+  ];
+
+  return (
+    <>
+      {satellites.map((satellite) => (
+        <PixelSatellite
+          key={satellite.id}
+          oceanHeight={oceanHeight}
+          km={satellite.km}
+          left={satellite.left}
+          scale={satellite.scale}
+          opacity={satellite.opacity}
+          duration={satellite.duration}
+          delay={satellite.delay}
+        />
+      ))}
+    </>
+  );
+}
+
+function PixelRadiationSign({ oceanHeight }) {
+  const gridSize = 46;
+  const pixel = 1.9;
+  const center = gridSize / 2;
+  const scale = gridSize / 25;
+  const outerRadius = 11.9 * scale;
+  const innerRadius = 10.0 * scale;
+  const coreRadius = 2.85 * scale;
+  const bladeInnerRadius = 4.45 * scale;
+  const bladeOuterRadius = 8.95 * scale;
+  const bladeAngles = [-90, 30, 150];
+
+  const angleDiff = (a, b) => {
+    const diff = Math.abs(a - b) % 360;
+    return diff > 180 ? 360 - diff : diff;
+  };
+
+  const pixels = [];
+
+  for (let y = 0; y < gridSize; y += 1) {
+    for (let x = 0; x < gridSize; x += 1) {
+      const dx = x + 0.5 - center;
+      const dy = y + 0.5 - center;
+      const distance = Math.hypot(dx, dy);
+
+      let fill = null;
+
+      if (distance <= outerRadius) {
+        fill = "#ffef1f";
+      }
+
+      if (distance <= outerRadius && distance > innerRadius) {
+        fill = "#11151b";
+      }
+
+      if (distance <= bladeOuterRadius && distance >= bladeInnerRadius) {
+        const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
+        const inBlade = bladeAngles.some((bladeAngle) => angleDiff(angle, bladeAngle) <= 24);
+        if (inBlade) fill = "#11151b";
+      }
+
+      if (distance <= coreRadius) {
+        fill = "#11151b";
+      }
+
+      if (!fill) continue;
+
+      pixels.push(
+        <rect
+          key={`${x}-${y}`}
+          x={x * pixel}
+          y={y * pixel}
+          width={pixel}
+          height={pixel}
+          fill={fill}
+        />
+      );
+    }
+  }
+
+  return (
+    <div
+      style={{
+        position: "absolute",
+        left: "69%",
+        bottom: altitudeToPixels(475.5) + oceanHeight,
+        width: gridSize * pixel,
+        height: gridSize * pixel,
+        transform: "translateX(-50%)",
+        pointerEvents: "none",
+        zIndex: 4,
+        opacity: 0.92,
+      }}
+    >
+      <svg
+        width={gridSize * pixel}
+        height={gridSize * pixel}
+        viewBox={`0 0 ${gridSize * pixel} ${gridSize * pixel}`}
+        shapeRendering="crispEdges"
+        aria-hidden="true"
+      >
+        {pixels}
       </svg>
     </div>
   );
@@ -1382,34 +1561,43 @@ function AuroraBackground({ oceanHeight, viewportHeight }) {
   const centerPx = altitudeToPixels(300) + oceanHeight;
   const redCenterPx = altitudeToPixels(325) + oceanHeight;
   const half = viewportHeight / 2;
+  const auroraStartPx = centerPx - half;
+  const auroraRepeatCount = Math.max(
+    1,
+    Math.ceil((redCenterPx - auroraStartPx) / viewportHeight)
+  );
+  const auroraBands = Array.from({ length: auroraRepeatCount }, (_, index) => index);
   return (
     <>
-      {/* Green/purple aurora ombré centered at 300 km */}
-      <div
-        style={{
-          position: "absolute",
-          left: 0,
-          right: 0,
-          bottom: centerPx - half,
-          height: viewportHeight,
-          background: `linear-gradient(to top,
-            rgba(3, 20, 8, 0) 0%,
-            rgba(4, 26, 10, 0.72) 7%,
-            rgba(6, 38, 14, 0.88) 18%,
-            rgba(8, 34, 12, 0.92) 28%,
-            rgba(20, 24, 8, 0.94) 38%,
-            rgba(30, 8, 10, 0.95) 45%,
-            rgba(36, 4, 16, 0.97) 50%,
-            rgba(40, 4, 28, 0.95) 58%,
-            rgba(36, 6, 46, 0.92) 67%,
-            rgba(28, 8, 56, 0.88) 76%,
-            rgba(16, 4, 38, 0.74) 90%,
-            rgba(8, 2, 20, 0) 100%
-          )`,
-          pointerEvents: "none",
-          zIndex: -1,
-        }}
-      />
+      {/* Repeat the auroral peak palette every viewport until the 325 km crown */}
+      {auroraBands.map((index) => (
+        <div
+          key={`aurora-band-${index}`}
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            bottom: auroraStartPx + index * viewportHeight,
+            height: viewportHeight,
+            background: `linear-gradient(to top,
+              rgba(3, 20, 8, 0) 0%,
+              rgba(4, 26, 10, 0.72) 7%,
+              rgba(6, 38, 14, 0.88) 18%,
+              rgba(8, 34, 12, 0.92) 28%,
+              rgba(20, 24, 8, 0.94) 38%,
+              rgba(30, 8, 10, 0.95) 45%,
+              rgba(36, 4, 16, 0.97) 50%,
+              rgba(40, 4, 28, 0.95) 58%,
+              rgba(36, 6, 46, 0.92) 67%,
+              rgba(28, 8, 56, 0.88) 76%,
+              rgba(16, 4, 38, 0.74) 90%,
+              rgba(8, 2, 20, 0) 100%
+            )`,
+            pointerEvents: "none",
+            zIndex: -1,
+          }}
+        />
+      ))}
       {/* Red aurora crown ombré centered at 325 km */}
       <div
         style={{
@@ -1855,6 +2043,8 @@ const StaticAtmosphereScene = memo(function StaticAtmosphereScene({
       <PixelJellyfish oceanHeight={oceanHeight} left="68%" bottomFraction={0.62} width={38} height={52} delay="0s" />
       <PixelJellyfish oceanHeight={oceanHeight} left="82%" bottomFraction={0.48} width={24} height={33} delay="-2.6s" />
       <PixelISS oceanHeight={oceanHeight} />
+      <PolarOrbitSatellites oceanHeight={oceanHeight} />
+      <PixelRadiationSign oceanHeight={oceanHeight} />
       <Stars />
       <PixelUFO oceanHeight={oceanHeight} isPhone={isPhone} hudHeight={hudHeight} />
 
