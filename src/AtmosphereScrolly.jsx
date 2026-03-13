@@ -1178,6 +1178,7 @@ export default function AtmosphereScrolly() {
   const [oceanHeight, setOceanHeight] = useState(400);
   const totalHeight = ATM_HEIGHT + oceanHeight;
   const [currentKm, setCurrentKm] = useState(0);
+  const currentKmRef = useRef(0);
   // const [showClimate, setShowClimate] = useState(false);
   const showClimate = false;
   const [isTempDragging, setIsTempDragging] = useState(false);
@@ -1324,7 +1325,9 @@ export default function AtmosphereScrolly() {
     const km = pixelsToAltitude(Math.max(0, scrollBottom));
     setCurrentKm((prev) => {
       const next = Math.max(0, Math.min(km, MAX_ALTITUDE_KM));
-      return next === prev ? prev : next;
+      if (next === prev) return prev;
+      currentKmRef.current = next;
+      return next;
     });
   }, [oceanHeight]);
 
@@ -1552,6 +1555,7 @@ export default function AtmosphereScrolly() {
     const el = containerRef.current;
     if (!el) return;
 
+    let rafId = null;
     const handleScroll = () => {
       // frozenScrollTop is a ref so this always reads the latest value —
       // altitude display unfreezes the instant frozenScrollTop is cleared,
@@ -1560,12 +1564,22 @@ export default function AtmosphereScrolly() {
         containerRef.current.scrollTop = frozenScrollTop.current;
         return;
       }
-      updateAltitude();
+      // Throttle to one React state update per animation frame so momentum
+      // scroll isn't broken by high-frequency re-renders.
+      if (rafId === null) {
+        rafId = requestAnimationFrame(() => {
+          rafId = null;
+          updateAltitude();
+        });
+      }
     };
 
     el.addEventListener("scroll", handleScroll, { passive: true });
 
-    return () => el.removeEventListener("scroll", handleScroll);
+    return () => {
+      el.removeEventListener("scroll", handleScroll);
+      if (rafId !== null) cancelAnimationFrame(rafId);
+    };
   }, [updateAltitude]);
 
   useEffect(() => {
@@ -1578,18 +1592,20 @@ export default function AtmosphereScrolly() {
 
   useEffect(() => {
     const el = containerRef.current;
-    // Skip at sea level — alignToSeaLevel intentionally places the ocean in the lower half
-    // of the viewport, which is offset from what this effect computes. Snapping here would
-    // jerk the page on the first scroll gesture (or whenever iOS Safari resizes the viewport
-    // as the browser chrome hides/shows).
-    if (!el || activeChapterKm || !hasUserNavigated.current || currentKm === 0) return;
+    const km = currentKmRef.current;
+    // Only re-sync on viewport resize (oceanHeight change) or chapter transitions —
+    // NOT on every scroll event. Putting currentKm in deps would snap scroll back on
+    // every render during momentum, breaking inertia completely.
+    // Skip at sea level: alignToSeaLevel positions the ocean in the lower half of the
+    // viewport, intentionally offset from what this formula computes.
+    if (!el || activeChapterKm || !hasUserNavigated.current || km === 0) return;
 
-    const targetPx = altitudeToPixels(currentKm) + oceanHeight;
+    const targetPx = altitudeToPixels(km) + oceanHeight;
     const targetScrollTop = el.scrollHeight - el.clientHeight - targetPx;
     if (Math.abs(el.scrollTop - targetScrollTop) > 1) {
       el.scrollTop = targetScrollTop;
     }
-  }, [oceanHeight, currentKm, activeChapterKm]);
+  }, [oceanHeight, activeChapterKm]);
 
   const bgColor = getBackgroundColor(currentKm);
   const temp = getTemperature(currentKm).toFixed(0);
