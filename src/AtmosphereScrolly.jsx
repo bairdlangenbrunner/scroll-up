@@ -1661,7 +1661,7 @@ export default function AtmosphereScrolly() {
       event.preventDefault();
       const deltaPx = touchYRef.current - nextY;
       touchYRef.current = nextY;
-      applyScrollDelta(-deltaPx);
+      applyScrollDelta(deltaPx);
     };
 
     const handleTouchEnd = () => {
