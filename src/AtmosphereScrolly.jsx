@@ -1099,6 +1099,114 @@ function TroposphereClouds({ oceanHeight }) {
   );
 }
 
+// ─── Noctilucent Clouds (76–84 km) ───────────────────────────────────
+function NoctilucentClouds({ oceanHeight, isPhone, desktopLabelInset, contentRight }) {
+  const left = isPhone ? "15vw" : `${desktopLabelInset}px`;
+  const right = isPhone ? "5vw" : `${contentRight + 20}px`;
+  return (
+    <>
+      {/* Formation A — 83 km, brightest */}
+      <div style={{ position: "absolute", left, right, bottom: altitudeToPixels(83) + oceanHeight, height: 20, opacity: 0.86, pointerEvents: "none", zIndex: 2 }}>
+        <svg width="100%" height="100%" viewBox="0 0 480 20" preserveAspectRatio="none" shapeRendering="crispEdges" aria-hidden="true">
+          <rect x="0"   y="14" width="480" height="6"  fill="#2e8cb4" />
+          <rect x="0"   y="10" width="480" height="4"  fill="#4eb0d0" />
+          <rect x="12"  y="8"  width="56"  height="4"  fill="#4eb0d0" />
+          <rect x="108" y="6"  width="72"  height="6"  fill="#4eb0d0" />
+          <rect x="208" y="8"  width="60"  height="4"  fill="#4eb0d0" />
+          <rect x="308" y="6"  width="72"  height="6"  fill="#4eb0d0" />
+          <rect x="408" y="8"  width="52"  height="4"  fill="#4eb0d0" />
+          <rect x="16"  y="6"  width="46"  height="4"  fill="#80cce8" />
+          <rect x="114" y="4"  width="60"  height="4"  fill="#80cce8" />
+          <rect x="214" y="6"  width="48"  height="4"  fill="#80cce8" />
+          <rect x="314" y="4"  width="60"  height="4"  fill="#80cce8" />
+          <rect x="412" y="6"  width="42"  height="4"  fill="#80cce8" />
+          <rect x="22"  y="4"  width="30"  height="4"  fill="#b8e6f8" />
+          <rect x="122" y="2"  width="44"  height="4"  fill="#b8e6f8" />
+          <rect x="220" y="4"  width="34"  height="4"  fill="#b8e6f8" />
+          <rect x="322" y="2"  width="44"  height="4"  fill="#b8e6f8" />
+          <rect x="418" y="4"  width="28"  height="4"  fill="#b8e6f8" />
+          <rect x="130" y="0"  width="28"  height="4"  fill="#d8f2ff" />
+          <rect x="330" y="0"  width="28"  height="4"  fill="#d8f2ff" />
+        </svg>
+      </div>
+
+      {/* Formation B — 80 km, medium opacity */}
+      <div style={{ position: "absolute", left, right, bottom: altitudeToPixels(80) + oceanHeight, height: 18, opacity: 0.72, pointerEvents: "none", zIndex: 2 }}>
+        <svg width="100%" height="100%" viewBox="0 0 420 18" preserveAspectRatio="none" shapeRendering="crispEdges" aria-hidden="true">
+          <rect x="0"   y="12" width="420" height="6"  fill="#2e8cb4" />
+          <rect x="0"   y="8"  width="420" height="4"  fill="#4eb0d0" />
+          <rect x="10"  y="6"  width="64"  height="4"  fill="#4eb0d0" />
+          <rect x="112" y="4"  width="76"  height="6"  fill="#4eb0d0" />
+          <rect x="228" y="6"  width="64"  height="4"  fill="#4eb0d0" />
+          <rect x="332" y="4"  width="76"  height="6"  fill="#4eb0d0" />
+          <rect x="14"  y="4"  width="54"  height="4"  fill="#80cce8" />
+          <rect x="118" y="2"  width="62"  height="4"  fill="#80cce8" />
+          <rect x="234" y="4"  width="52"  height="4"  fill="#80cce8" />
+          <rect x="338" y="2"  width="62"  height="4"  fill="#80cce8" />
+          <rect x="124" y="0"  width="46"  height="4"  fill="#b8e6f8" />
+          <rect x="344" y="0"  width="46"  height="4"  fill="#b8e6f8" />
+        </svg>
+      </div>
+
+      {/* Formation C — 77 km, dimmest */}
+      <div style={{ position: "absolute", left, right, bottom: altitudeToPixels(77) + oceanHeight, height: 16, opacity: 0.58, pointerEvents: "none", zIndex: 2 }}>
+        <svg width="100%" height="100%" viewBox="0 0 500 16" preserveAspectRatio="none" shapeRendering="crispEdges" aria-hidden="true">
+          <rect x="0"   y="10" width="500" height="6"  fill="#2e8cb4" />
+          <rect x="0"   y="6"  width="500" height="4"  fill="#4eb0d0" />
+          <rect x="0"   y="4"  width="100" height="4"  fill="#4eb0d0" />
+          <rect x="158" y="2"  width="122" height="6"  fill="#4eb0d0" />
+          <rect x="338" y="4"  width="102" height="4"  fill="#4eb0d0" />
+          <rect x="456" y="2"  width="44"  height="6"  fill="#4eb0d0" />
+          <rect x="4"   y="2"  width="86"  height="4"  fill="#80cce8" />
+          <rect x="164" y="0"  width="108" height="4"  fill="#80cce8" />
+          <rect x="344" y="2"  width="88"  height="4"  fill="#80cce8" />
+          <rect x="460" y="0"  width="36"  height="4"  fill="#80cce8" />
+        </svg>
+      </div>
+    </>
+  );
+}
+
+// ─── Aurora Background Gradient ────────────────────────────────────────
+// One viewport tall, centered on 300 km (auroral peak). Fades to
+// transparent at both edges so it blends into the black scene.
+// Color bands follow real aurora altitude physics:
+//   bottom half: green (O at lower altitudes)
+//   transition:  yellow-green → red
+//   center:      deep crimson / rose (~300 km)
+//   upper half:  magenta → violet → purple-indigo
+function AuroraBackground({ oceanHeight, viewportHeight }) {
+  const centerPx = altitudeToPixels(300) + oceanHeight;
+  const half = viewportHeight / 2;
+  return (
+    <div
+      style={{
+        position: "absolute",
+        left: 0,
+        right: 0,
+        bottom: centerPx - half,
+        height: viewportHeight,
+        background: `linear-gradient(to top,
+          rgba(3, 20, 8, 0) 0%,
+          rgba(4, 26, 10, 0.72) 7%,
+          rgba(6, 38, 14, 0.88) 18%,
+          rgba(8, 34, 12, 0.92) 28%,
+          rgba(20, 24, 8, 0.94) 38%,
+          rgba(30, 8, 10, 0.95) 45%,
+          rgba(36, 4, 16, 0.97) 50%,
+          rgba(40, 4, 28, 0.95) 58%,
+          rgba(36, 6, 46, 0.92) 67%,
+          rgba(28, 8, 56, 0.88) 76%,
+          rgba(16, 4, 38, 0.74) 90%,
+          rgba(8, 2, 20, 0) 100%
+        )`,
+        pointerEvents: "none",
+        zIndex: -1,
+      }}
+    />
+  );
+}
+
 function OzoneMolecules({ oceanHeight }) {
   const molecules = useMemo(() => {
     const random = createSeededRandom(777);
@@ -1325,6 +1433,7 @@ const StaticAtmosphereScene = memo(function StaticAtmosphereScene({
   contentRight,
   desktopLabelInset,
   hudHeight,
+  viewportHeight,
 }) {
   return (
     <>
@@ -1505,8 +1614,10 @@ const StaticAtmosphereScene = memo(function StaticAtmosphereScene({
         );
       })}
 
+      <AuroraBackground oceanHeight={oceanHeight} viewportHeight={viewportHeight} />
       <TroposphereClouds oceanHeight={oceanHeight} />
       <OzoneMolecules oceanHeight={oceanHeight} />
+      <NoctilucentClouds oceanHeight={oceanHeight} isPhone={isPhone} desktopLabelInset={desktopLabelInset} contentRight={contentRight} />
       <KilimanjaroComparison compact={isCompact} phone={isPhone} oceanHeight={oceanHeight} />
       <EverestComparison compact={isCompact} phone={isPhone} oceanHeight={oceanHeight} />
       <BurjComparison compact={isCompact} phone={isPhone} oceanHeight={oceanHeight} />
@@ -1953,6 +2064,7 @@ export default function AtmosphereScrolly() {
                 contentRight={contentRight}
                 desktopLabelInset={desktopLabelInset}
                 hudHeight={hudHeight}
+                viewportHeight={visibleSceneHeight}
               />
               <CruisingPlanes currentKm={currentKm} topVisibleKm={topVisibleKm} oceanHeight={oceanHeight} />
             </div>
