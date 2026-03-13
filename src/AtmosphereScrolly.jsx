@@ -929,44 +929,41 @@ function CruisingPlanes({ currentKm, topVisibleKm, oceanHeight }) {
             style={{ display: "block" }}
           >
             <g fill="#dce9f2">
-              <rect x="18" y="18" width="40" height="8" />
-              <rect x="58" y="16" width="18" height="10" />
-              <rect x="76" y="18" width="10" height="6" />
-              <rect x="10" y="14" width="8" height="4" />
-              <rect x="10" y="26" width="8" height="4" />
-              <rect x="22" y="10" width="10" height="4" />
-              <rect x="18" y="14" width="14" height="4" />
-              <rect x="24" y="26" width="10" height="4" />
-              <rect x="20" y="22" width="14" height="4" />
-              <rect x="34" y="6" width="10" height="4" />
-              <rect x="30" y="10" width="16" height="4" />
-              <rect x="38" y="30" width="10" height="4" />
-              <rect x="34" y="26" width="16" height="4" />
+              {/* Fuselage */}
+              <rect x="10" y="15" width="68" height="12" />
+              {/* Nose taper (right) */}
+              <rect x="78" y="16" width="8" height="10" />
+              <rect x="84" y="17" width="6" height="8" />
+              <rect x="88" y="19" width="4" height="4" />
+              {/* Tail body (left) */}
+              <rect x="4" y="15" width="8" height="12" />
+              {/* Vertical tail fin */}
+              <rect x="4" y="5" width="8" height="11" />
+              <rect x="6" y="1" width="6" height="6" />
+              {/* Horizontal stabilizer */}
+              <rect x="0" y="20" width="6" height="4" />
+              {/* Wing — swept back, extends down-left from mid-fuselage */}
+              <rect x="32" y="27" width="30" height="4" />
+              <rect x="22" y="31" width="26" height="4" />
+              <rect x="14" y="35" width="18" height="3" />
+              <rect x="8" y="37" width="10" height="2" />
             </g>
             <g fill="#c7d7e3">
-              <rect x="18" y="24" width="40" height="2" />
-              <rect x="58" y="24" width="16" height="2" />
-              <rect x="76" y="22" width="8" height="2" />
+              {/* Fuselage underside shadow */}
+              <rect x="10" y="25" width="68" height="2" />
+              {/* Wing shadow line */}
+              <rect x="32" y="29" width="30" height="2" />
             </g>
             <g fill="#29a8df">
-              <rect x="46" y="18" width="4" height="4" />
-              <rect x="54" y="18" width="4" height="4" />
-              <rect x="62" y="18" width="4" height="4" />
-              <rect x="70" y="18" width="4" height="4" />
-              <rect x="78" y="20" width="4" height="2" />
-            </g>
-            <g fill="#366fb6">
-              <rect x="18" y="12" width="10" height="4" />
-              <rect x="14" y="16" width="10" height="4" />
-              <rect x="34" y="8" width="8" height="2" />
-              <rect x="30" y="10" width="10" height="2" />
-              <rect x="20" y="24" width="10" height="4" />
-              <rect x="24" y="28" width="10" height="4" />
-              <rect x="36" y="30" width="10" height="2" />
+              {/* Cockpit windows near nose */}
+              <rect x="60" y="15" width="6" height="6" />
+              <rect x="66" y="15" width="6" height="6" />
+              <rect x="72" y="16" width="5" height="5" />
             </g>
             <g fill="#edf4f8">
-              <rect x="82" y="18" width="6" height="6" />
-              <rect x="88" y="20" width="2" height="2" />
+              {/* Nose highlight */}
+              <rect x="88" y="19" width="4" height="4" />
+              <rect x="90" y="20" width="2" height="2" />
             </g>
           </svg>
         </div>
@@ -1060,6 +1057,7 @@ function BurjComparison({ compact, phone, oceanHeight }) {
         width: svgWidth,
         height: svgHeight,
         zIndex: 1,
+        opacity: 0.7,
         pointerEvents: "none",
         transform: "translateX(-50%)",
       }}
@@ -1089,7 +1087,7 @@ function BurjComparison({ compact, phone, oceanHeight }) {
   );
 }
 
-function MountainComparison({ compact, phone, oceanHeight }) {
+function EverestComparison({ compact, phone, oceanHeight }) {
   const svgWidth = phone ? 124 : compact ? 184 : 244;
   const svgHeight = altitudeToPixels(8.849);
 
@@ -1102,6 +1100,7 @@ function MountainComparison({ compact, phone, oceanHeight }) {
         width: svgWidth,
         height: svgHeight,
         zIndex: 1,
+        opacity: 0.7,
         pointerEvents: "none",
         transform: "translateX(-50%)",
       }}
@@ -1114,31 +1113,31 @@ function MountainComparison({ compact, phone, oceanHeight }) {
         style={{ display: "block" }}
         shapeRendering="crispEdges"
       >
+        {/* Mountain body — wide base tapering to a peak (~7% step per side per layer) */}
         <g fill="#655f8d">
-          <rect x={0} y={svgHeight * 0.84} width={svgWidth} height={svgHeight * 0.16} />
-          <rect x={svgWidth * 0.02} y={svgHeight * 0.76} width={svgWidth * 0.9} height={svgHeight * 0.08} />
-          <rect x={svgWidth * 0.08} y={svgHeight * 0.66} width={svgWidth * 0.76} height={svgHeight * 0.1} />
-          <rect x={svgWidth * 0.14} y={svgHeight * 0.56} width={svgWidth * 0.6} height={svgHeight * 0.1} />
-          <rect x={svgWidth * 0.2} y={svgHeight * 0.46} width={svgWidth * 0.46} height={svgHeight * 0.1} />
-          <rect x={svgWidth * 0.28} y={svgHeight * 0.34} width={svgWidth * 0.3} height={svgHeight * 0.12} />
-          <rect x={svgWidth * 0.32} y={svgHeight * 0.22} width={svgWidth * 0.3} height={svgHeight * 0.12} />
-          <rect x={svgWidth * 0.36} y={svgHeight * 0.12} width={svgWidth * 0.22} height={svgHeight * 0.1} />
-          <rect x={svgWidth * 0.38} y={0} width={svgWidth * 0.18} height={svgHeight * 0.12} />
-          <rect x={svgWidth * 0.56} y={svgHeight * 0.12} width={svgWidth * 0.08} height={svgHeight * 0.1} />
-          <rect x={svgWidth * 0.62} y={svgHeight * 0.28} width={svgWidth * 0.1} height={svgHeight * 0.1} />
-          <rect x={svgWidth * 0.72} y={svgHeight * 0.42} width={svgWidth * 0.1} height={svgHeight * 0.12} />
-          <rect x={svgWidth * 0.82} y={svgHeight * 0.58} width={svgWidth * 0.08} height={svgHeight * 0.18} />
+          <rect x={0}                  y={svgHeight * 0.88} width={svgWidth}            height={svgHeight * 0.12} />
+          <rect x={svgWidth * 0.07}    y={svgHeight * 0.77} width={svgWidth * 0.86}     height={svgHeight * 0.11} />
+          <rect x={svgWidth * 0.14}    y={svgHeight * 0.66} width={svgWidth * 0.72}     height={svgHeight * 0.11} />
+          <rect x={svgWidth * 0.21}    y={svgHeight * 0.55} width={svgWidth * 0.58}     height={svgHeight * 0.11} />
+          <rect x={svgWidth * 0.28}    y={svgHeight * 0.44} width={svgWidth * 0.44}     height={svgHeight * 0.11} />
+          <rect x={svgWidth * 0.35}    y={svgHeight * 0.33} width={svgWidth * 0.30}     height={svgHeight * 0.11} />
+          <rect x={svgWidth * 0.39}    y={svgHeight * 0.22} width={svgWidth * 0.22}     height={svgHeight * 0.11} />
+          <rect x={svgWidth * 0.42}    y={svgHeight * 0.12} width={svgWidth * 0.16}     height={svgHeight * 0.10} />
+          <rect x={svgWidth * 0.44}    y={0}                width={svgWidth * 0.12}     height={svgHeight * 0.12} />
         </g>
+        {/* Left-face highlight (lighter blue-purple) */}
         <g fill="#8fa2d6">
-          <rect x={svgWidth * 0.18} y={svgHeight * 0.56} width={svgWidth * 0.12} height={svgHeight * 0.1} />
-          <rect x={svgWidth * 0.28} y={svgHeight * 0.44} width={svgWidth * 0.1} height={svgHeight * 0.1} />
-          <rect x={svgWidth * 0.36} y={svgHeight * 0.32} width={svgWidth * 0.14} height={svgHeight * 0.1} />
-          <rect x={svgWidth * 0.5} y={svgHeight * 0.22} width={svgWidth * 0.08} height={svgHeight * 0.1} />
+          <rect x={svgWidth * 0.07}    y={svgHeight * 0.77} width={svgWidth * 0.07}     height={svgHeight * 0.11} />
+          <rect x={svgWidth * 0.14}    y={svgHeight * 0.66} width={svgWidth * 0.07}     height={svgHeight * 0.11} />
+          <rect x={svgWidth * 0.21}    y={svgHeight * 0.55} width={svgWidth * 0.07}     height={svgHeight * 0.11} />
+          <rect x={svgWidth * 0.28}    y={svgHeight * 0.44} width={svgWidth * 0.07}     height={svgHeight * 0.11} />
+          <rect x={svgWidth * 0.35}    y={svgHeight * 0.33} width={svgWidth * 0.06}     height={svgHeight * 0.11} />
         </g>
+        {/* Snow cap */}
         <g fill="#eef4ff">
-          <rect x={svgWidth * 0.38} y={0} width={svgWidth * 0.18} height={svgHeight * 0.08} />
-          <rect x={svgWidth * 0.34} y={svgHeight * 0.08} width={svgWidth * 0.24} height={svgHeight * 0.04} />
-          <rect x={svgWidth * 0.32} y={svgHeight * 0.12} width={svgWidth * 0.26} height={svgHeight * 0.04} />
+          <rect x={svgWidth * 0.44}    y={0}                width={svgWidth * 0.12}     height={svgHeight * 0.07} />
+          <rect x={svgWidth * 0.42}    y={svgHeight * 0.07} width={svgWidth * 0.14}     height={svgHeight * 0.03} />
+          <rect x={svgWidth * 0.41}    y={svgHeight * 0.10} width={svgWidth * 0.15}     height={svgHeight * 0.02} />
         </g>
       </svg>
     </div>
@@ -1158,6 +1157,7 @@ function KilimanjaroComparison({ compact, phone, oceanHeight }) {
         width: svgWidth,
         height: svgHeight,
         zIndex: 1,
+        opacity: 0.7,
         pointerEvents: "none",
         transform: "translateX(-50%)",
       }}
@@ -1170,28 +1170,31 @@ function KilimanjaroComparison({ compact, phone, oceanHeight }) {
         style={{ display: "block" }}
         shapeRendering="crispEdges"
       >
+        {/* Mountain body — wide base tapering to a peak (~7% step per side per layer) */}
         <g fill="#5f5a88">
-          <rect x={0} y={svgHeight * 0.86} width={svgWidth} height={svgHeight * 0.14} />
-          <rect x={svgWidth * 0.04} y={svgHeight * 0.78} width={svgWidth * 0.84} height={svgHeight * 0.08} />
-          <rect x={svgWidth * 0.1} y={svgHeight * 0.68} width={svgWidth * 0.68} height={svgHeight * 0.1} />
-          <rect x={svgWidth * 0.18} y={svgHeight * 0.56} width={svgWidth * 0.5} height={svgHeight * 0.12} />
-          <rect x={svgWidth * 0.28} y={svgHeight * 0.42} width={svgWidth * 0.32} height={svgHeight * 0.14} />
-          <rect x={svgWidth * 0.34} y={svgHeight * 0.28} width={svgWidth * 0.28} height={svgHeight * 0.14} />
-          <rect x={svgWidth * 0.38} y={svgHeight * 0.16} width={svgWidth * 0.22} height={svgHeight * 0.12} />
-          <rect x={svgWidth * 0.4} y={0} width={svgWidth * 0.18} height={svgHeight * 0.16} />
-          <rect x={svgWidth * 0.56} y={svgHeight * 0.16} width={svgWidth * 0.08} height={svgHeight * 0.12} />
-          <rect x={svgWidth * 0.64} y={svgHeight * 0.34} width={svgWidth * 0.08} height={svgHeight * 0.1} />
-          <rect x={svgWidth * 0.72} y={svgHeight * 0.5} width={svgWidth * 0.08} height={svgHeight * 0.18} />
+          <rect x={0}                  y={svgHeight * 0.88} width={svgWidth}            height={svgHeight * 0.12} />
+          <rect x={svgWidth * 0.07}    y={svgHeight * 0.77} width={svgWidth * 0.86}     height={svgHeight * 0.11} />
+          <rect x={svgWidth * 0.14}    y={svgHeight * 0.66} width={svgWidth * 0.72}     height={svgHeight * 0.11} />
+          <rect x={svgWidth * 0.21}    y={svgHeight * 0.55} width={svgWidth * 0.58}     height={svgHeight * 0.11} />
+          <rect x={svgWidth * 0.28}    y={svgHeight * 0.44} width={svgWidth * 0.44}     height={svgHeight * 0.11} />
+          <rect x={svgWidth * 0.35}    y={svgHeight * 0.33} width={svgWidth * 0.30}     height={svgHeight * 0.11} />
+          <rect x={svgWidth * 0.39}    y={svgHeight * 0.22} width={svgWidth * 0.22}     height={svgHeight * 0.11} />
+          <rect x={svgWidth * 0.42}    y={svgHeight * 0.12} width={svgWidth * 0.16}     height={svgHeight * 0.10} />
+          <rect x={svgWidth * 0.44}    y={0}                width={svgWidth * 0.12}     height={svgHeight * 0.12} />
         </g>
+        {/* Left-face highlight (lighter blue-purple) */}
         <g fill="#8ea2da">
-          <rect x={svgWidth * 0.22} y={svgHeight * 0.56} width={svgWidth * 0.1} height={svgHeight * 0.12} />
-          <rect x={svgWidth * 0.34} y={svgHeight * 0.42} width={svgWidth * 0.08} height={svgHeight * 0.12} />
-          <rect x={svgWidth * 0.42} y={svgHeight * 0.28} width={svgWidth * 0.12} height={svgHeight * 0.12} />
+          <rect x={svgWidth * 0.07}    y={svgHeight * 0.77} width={svgWidth * 0.07}     height={svgHeight * 0.11} />
+          <rect x={svgWidth * 0.14}    y={svgHeight * 0.66} width={svgWidth * 0.07}     height={svgHeight * 0.11} />
+          <rect x={svgWidth * 0.21}    y={svgHeight * 0.55} width={svgWidth * 0.07}     height={svgHeight * 0.11} />
+          <rect x={svgWidth * 0.28}    y={svgHeight * 0.44} width={svgWidth * 0.07}     height={svgHeight * 0.11} />
+          <rect x={svgWidth * 0.35}    y={svgHeight * 0.33} width={svgWidth * 0.06}     height={svgHeight * 0.11} />
         </g>
+        {/* Snow cap */}
         <g fill="#eef5ff">
-          <rect x={svgWidth * 0.4} y={0} width={svgWidth * 0.18} height={svgHeight * 0.1} />
-          <rect x={svgWidth * 0.36} y={svgHeight * 0.1} width={svgWidth * 0.22} height={svgHeight * 0.06} />
-          <rect x={svgWidth * 0.34} y={svgHeight * 0.16} width={svgWidth * 0.22} height={svgHeight * 0.04} />
+          <rect x={svgWidth * 0.44}    y={0}                width={svgWidth * 0.12}     height={svgHeight * 0.07} />
+          <rect x={svgWidth * 0.42}    y={svgHeight * 0.07} width={svgWidth * 0.14}     height={svgHeight * 0.03} />
+          <rect x={svgWidth * 0.41}    y={svgHeight * 0.10} width={svgWidth * 0.15}     height={svgHeight * 0.02} />
         </g>
       </svg>
     </div>
@@ -1234,7 +1237,7 @@ const StaticAtmosphereScene = memo(function StaticAtmosphereScene({
         <div style={{ marginBottom: 10, fontSize: isPhone ? "44px" : "52px", lineHeight: 1, color: "rgba(140, 190, 210, 0.42)" }}>
           ↑
         </div>
-        <div style={{ fontSize: isPhone ? "16px" : "18px", color: "rgba(160, 210, 228, 0.76)", maxWidth: isPhone ? 260 : 460, margin: isPhone ? 0 : "0 auto", lineHeight: 1.65, fontFamily: "'Domine', Georgia, serif" }}>
+        <div style={{ fontSize: isPhone ? "16px" : "18px", color: "rgba(160, 210, 228, 0.76)", maxWidth: isPhone ? 260 : 460, margin: isPhone ? 0 : "0 auto", lineHeight: 1.65, fontFamily: "'Roboto Mono', monospace" }}>
           You&apos;re at sea level. The atmosphere stretches above you for hundreds of kilometers. Scroll up through it.
         </div>
       </div>
@@ -1377,7 +1380,7 @@ const StaticAtmosphereScene = memo(function StaticAtmosphereScene({
                   {lm.km < 1 ? (lm.km * 1000).toFixed(0) + " m" : lm.km + " km"}
                 </span>
               </div>
-              <div style={{ fontSize: isPhone ? "12px" : isCompact ? "14px" : "16px", color: lmSubColor, marginTop: 3, lineHeight: isPhone ? 1.45 : 1.6, fontFamily: "'Domine', Georgia, serif" }}>
+              <div style={{ fontSize: isPhone ? "12px" : isCompact ? "14px" : "16px", color: lmSubColor, marginTop: 3, lineHeight: isPhone ? 1.45 : 1.6, fontFamily: "'Roboto Mono', monospace" }}>
                 {lm.detail}
               </div>
             </div>
@@ -1388,7 +1391,7 @@ const StaticAtmosphereScene = memo(function StaticAtmosphereScene({
       <TroposphereClouds oceanHeight={oceanHeight} />
       <OzoneMolecules oceanHeight={oceanHeight} />
       <KilimanjaroComparison compact={isCompact} phone={isPhone} oceanHeight={oceanHeight} />
-      <MountainComparison compact={isCompact} phone={isPhone} oceanHeight={oceanHeight} />
+      <EverestComparison compact={isCompact} phone={isPhone} oceanHeight={oceanHeight} />
       <BurjComparison compact={isCompact} phone={isPhone} oceanHeight={oceanHeight} />
       <Stars />
 
