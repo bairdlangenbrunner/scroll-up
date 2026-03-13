@@ -79,14 +79,23 @@ const landmarks = [
   { km: 85, label: "Mesopause", detail: "The coldest point in the atmosphere: around −90°C (−130°F)", isBoundary: true },
   { km: 100, label: "Kármán line", detail: "The internationally recognized edge of space" },
   { km: 110, label: "Auroras begin", detail: "Northern and southern lights shimmer from ~110–500 km" },
+  { km: 125, label: "Turbopause", detail: "Below this line, turbulent winds keep all atmospheric gases uniformly mixed. Above it, each gas separates by molecular weight — lighter atoms float up, heavier ones sink." },
   { km: 150, label: "Atomic oxygen zone", detail: "Single oxygen atoms become common here and can slowly erode spacecraft surfaces" },
+  { km: 175, label: "Days to reentry", detail: "Atmospheric drag here is faint but relentless. A satellite at this altitude without thrust will spiral back into the atmosphere within days." },
   { km: 200, label: "Very low Earth orbit", detail: "Satellites this low lose altitude quickly because the atmosphere still creates measurable drag" },
+  { km: 225, label: "One-trillionth sea level pressure", detail: "Air density here is roughly one-trillionth of sea level — thinner than the best laboratory vacuums achievable a century ago." },
   { km: 250, label: "Upper thermosphere", detail: "\"Temperature\" only really describes how fast particles are moving here, not how warm it would feel to your body" },
+  { km: 275, label: "Atomic oxygen erosion", detail: "Highly reactive atomic oxygen at these altitudes slowly etches spacecraft surfaces, degrading solar panels and thermal coatings over months and years." },
   { km: 300, label: "Auroral peak activity", detail: "Some of the brightest auroral curtains and arcs form in this altitude range" },
+  { km: 325, label: "Red aurora crown", detail: "The deep crimson glow at the top of tall auroral rays forms here — oxygen atoms energized by solar electrons, radiating at 630 nm before slowly cooling." },
   { km: 350, label: "Orbital drag still matters", detail: "Even here, trace atmosphere steadily slows satellites unless they boost their orbit" },
+  { km: 375, label: "Still falling", detail: "Gravity here is about 88% of surface gravity. Astronauts feel weightless not because gravity is absent, but because they are in continuous free fall around Earth — always falling, never landing." },
   { km: 408, label: "International Space Station", detail: "Orbiting at ~408 km — still technically in the atmosphere" },
+  { km: 425, label: "Polar orbit band", detail: "Polar-orbiting satellites here circle Earth from pole to pole every ~93 minutes, scanning the entire planet's surface within 24 hours. Most weather and Earth-observation satellites operate in this band." },
   { km: 450, label: "Exosphere starts to dominate", detail: "Molecules can travel long distances without colliding, and some escape Earth altogether" },
+  { km: 475, label: "Radiation intensifies", detail: "The inner Van Allen belt begins to encroach here. Astronauts accumulate roughly 10× the annual radiation dose of people on the ground, even inside a shielded spacecraft." },
   { km: 500, label: "Thermopause", detail: "Above here is the exosphere, where the atmosphere fades into the vacuum of space.", isBoundary: true },
+  { km: 525, label: "Molecules in free flight", detail: "Air is so diffuse here that individual molecules can travel hundreds of kilometers before colliding with another. The classical idea of \"air\" is dissolving into interplanetary space." },
   { km: 550, label: "Almost space, still atmosphere", detail: "The air here is extraordinarily sparse, but the atmosphere still has not cleanly ended" },
 ];
 
@@ -1371,33 +1380,60 @@ function NoctilucentClouds({ oceanHeight, isPhone, desktopLabelInset, contentRig
 //   upper half:  magenta → violet → purple-indigo
 function AuroraBackground({ oceanHeight, viewportHeight }) {
   const centerPx = altitudeToPixels(300) + oceanHeight;
+  const redCenterPx = altitudeToPixels(325) + oceanHeight;
   const half = viewportHeight / 2;
   return (
-    <div
-      style={{
-        position: "absolute",
-        left: 0,
-        right: 0,
-        bottom: centerPx - half,
-        height: viewportHeight,
-        background: `linear-gradient(to top,
-          rgba(3, 20, 8, 0) 0%,
-          rgba(4, 26, 10, 0.72) 7%,
-          rgba(6, 38, 14, 0.88) 18%,
-          rgba(8, 34, 12, 0.92) 28%,
-          rgba(20, 24, 8, 0.94) 38%,
-          rgba(30, 8, 10, 0.95) 45%,
-          rgba(36, 4, 16, 0.97) 50%,
-          rgba(40, 4, 28, 0.95) 58%,
-          rgba(36, 6, 46, 0.92) 67%,
-          rgba(28, 8, 56, 0.88) 76%,
-          rgba(16, 4, 38, 0.74) 90%,
-          rgba(8, 2, 20, 0) 100%
-        )`,
-        pointerEvents: "none",
-        zIndex: -1,
-      }}
-    />
+    <>
+      {/* Green/purple aurora ombré centered at 300 km */}
+      <div
+        style={{
+          position: "absolute",
+          left: 0,
+          right: 0,
+          bottom: centerPx - half,
+          height: viewportHeight,
+          background: `linear-gradient(to top,
+            rgba(3, 20, 8, 0) 0%,
+            rgba(4, 26, 10, 0.72) 7%,
+            rgba(6, 38, 14, 0.88) 18%,
+            rgba(8, 34, 12, 0.92) 28%,
+            rgba(20, 24, 8, 0.94) 38%,
+            rgba(30, 8, 10, 0.95) 45%,
+            rgba(36, 4, 16, 0.97) 50%,
+            rgba(40, 4, 28, 0.95) 58%,
+            rgba(36, 6, 46, 0.92) 67%,
+            rgba(28, 8, 56, 0.88) 76%,
+            rgba(16, 4, 38, 0.74) 90%,
+            rgba(8, 2, 20, 0) 100%
+          )`,
+          pointerEvents: "none",
+          zIndex: -1,
+        }}
+      />
+      {/* Red aurora crown ombré centered at 325 km */}
+      <div
+        style={{
+          position: "absolute",
+          left: 0,
+          right: 0,
+          bottom: redCenterPx - half,
+          height: viewportHeight,
+          background: `linear-gradient(to top,
+            rgba(80, 4, 12, 0) 0%,
+            rgba(100, 6, 16, 0.55) 10%,
+            rgba(130, 8, 22, 0.78) 22%,
+            rgba(155, 10, 28, 0.88) 35%,
+            rgba(160, 12, 30, 0.93) 50%,
+            rgba(140, 10, 40, 0.88) 62%,
+            rgba(110, 8, 50, 0.76) 74%,
+            rgba(70, 6, 40, 0.55) 87%,
+            rgba(40, 2, 20, 0) 100%
+          )`,
+          pointerEvents: "none",
+          zIndex: -1,
+        }}
+      />
+    </>
   );
 }
 
