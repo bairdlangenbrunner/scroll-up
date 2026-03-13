@@ -143,7 +143,7 @@ const CHAPTER_BREAKS = {
       "You've crossed the Kármán line, 100 km up.",
       "This is the internationally recognized boundary of space.",
       "Below here, aerodynamics works. Above here, only orbital mechanics matter.",
-      "And yet, the atmosphere doesn't truly end. It just... fades.",
+      "And yet, the atmosphere doesn't truly end. It just fades out exponentially.",
     ],
   },
   500: {
