@@ -165,7 +165,7 @@ const CHAPTER_BREAKS = {
     lines: [
       "You've reached the thermopause — the top of the thermosphere, around 500 km up.",
       "Its height shifts depending on solar activity, from about 200 km during quiet sun conditions to about 500 km when the sun is more active.",
-      "It's therefore more of a moving frontier than a hard shell."
+      "Like all of these boundaries, it's more of a moving frontier than a fixed shell."
     ],
   },
 };
