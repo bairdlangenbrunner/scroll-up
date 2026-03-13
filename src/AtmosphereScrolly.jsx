@@ -1487,6 +1487,9 @@ export default function AtmosphereScrolly() {
   const [, setIsRulerDragging] = useState(false);
   const hudRef = useRef(null);
   const touchYRef = useRef(null);
+  const touchVelRef = useRef(0);    // px/ms at last move event
+  const touchTsRef = useRef(0);     // timestamp of last move event
+  const momentumRafRef = useRef(null);
 
   useEffect(() => {
     if (typeof document === "undefined") return undefined;
@@ -1652,7 +1655,14 @@ export default function AtmosphereScrolly() {
     };
 
     const handleTouchStart = (event) => {
+      // Cancel any in-flight momentum
+      if (momentumRafRef.current != null) {
+        cancelAnimationFrame(momentumRafRef.current);
+        momentumRafRef.current = null;
+      }
       touchYRef.current = event.touches[0]?.clientY ?? null;
+      touchVelRef.current = 0;
+      touchTsRef.current = event.timeStamp;
     };
 
     const handleTouchMove = (event) => {
@@ -1660,12 +1670,31 @@ export default function AtmosphereScrolly() {
       if (touchYRef.current == null || nextY == null) return;
       event.preventDefault();
       const deltaPx = touchYRef.current - nextY;
+      const dt = event.timeStamp - touchTsRef.current;
+      // Track instantaneous velocity (px/ms) for momentum on lift
+      if (dt > 0) touchVelRef.current = deltaPx / dt;
       touchYRef.current = nextY;
+      touchTsRef.current = event.timeStamp;
       applyScrollDelta(deltaPx);
     };
 
     const handleTouchEnd = () => {
       touchYRef.current = null;
+      const vel = touchVelRef.current; // px/ms
+      if (Math.abs(vel) < 0.05) return;
+
+      // Convert to px/frame at ~60 fps, then decay each frame
+      let v = vel * 16;
+      const FRICTION = 0.93;
+      const STOP = 0.8; // px/frame
+
+      const tick = () => {
+        v *= FRICTION;
+        if (Math.abs(v) < STOP) { momentumRafRef.current = null; return; }
+        applyScrollDelta(v);
+        momentumRafRef.current = requestAnimationFrame(tick);
+      };
+      momentumRafRef.current = requestAnimationFrame(tick);
     };
 
     window.addEventListener("wheel", handleWheel, { passive: false });
@@ -1676,6 +1705,10 @@ export default function AtmosphereScrolly() {
     window.addEventListener("touchcancel", handleTouchEnd, { passive: true });
 
     return () => {
+      if (momentumRafRef.current != null) {
+        cancelAnimationFrame(momentumRafRef.current);
+        momentumRafRef.current = null;
+      }
       window.removeEventListener("wheel", handleWheel);
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("touchstart", handleTouchStart);
