@@ -2,6 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  CHAPTER_EXIT_EPSILON_KM,
+  findChapterCrossing,
   getChapterHalfRangeKm,
   getChapterOverlayState,
 } from "./chapterScroll.js";
@@ -61,4 +63,24 @@ test("nearest in-range chapter wins when overlay windows are close", () => {
 
   assert.ok(state);
   assert.equal(state.chapterKm, 50);
+});
+
+test("chapter crossing is detected in upward motion", () => {
+  const crossing = findChapterCrossing(CHAPTER_BREAKS, 11.7, 12.4);
+
+  assert.ok(crossing);
+  assert.equal(crossing.chapterKm, 12);
+  assert.equal(crossing.direction, "up");
+});
+
+test("chapter crossing is detected in downward motion", () => {
+  const crossing = findChapterCrossing(CHAPTER_BREAKS, 50.3, 49.4);
+
+  assert.ok(crossing);
+  assert.equal(crossing.chapterKm, 50);
+  assert.equal(crossing.direction, "down");
+});
+
+test("chapter exit epsilon remains small", () => {
+  assert.equal(CHAPTER_EXIT_EPSILON_KM, 0.02);
 });

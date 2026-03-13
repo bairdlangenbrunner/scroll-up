@@ -1,5 +1,8 @@
 import { memo, useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { getChapterOverlayState } from "./chapterScroll";
+import {
+  CHAPTER_EXIT_EPSILON_KM,
+  findChapterCrossing,
+} from "./chapterScroll";
 
 // ─── Scale & Constants ───────────────────────────────────────────────
 const MAX_ALTITUDE_KM = 550;
@@ -221,6 +224,13 @@ function getSubtextColor(km) {
   if (km < 20) return "rgba(80, 90, 120, 0.75)";
   if (km < 50) return "rgba(160, 170, 200, 0.7)";
   return "rgba(180, 185, 210, 0.65)";
+}
+
+function getTemperatureTrendColor(km) {
+  if (km < 12) return "rgba(150, 210, 255, 0.95)";
+  if (km < 50) return "rgba(255, 170, 120, 0.95)";
+  if (km < 85) return "rgba(150, 210, 255, 0.95)";
+  return "rgba(255, 170, 120, 0.95)";
 }
 
 function getLayerLabelOffset(layerName, compact, phone) {
@@ -848,15 +858,189 @@ function AltitudeRuler({ currentKm, onDragAltitude, onDragStateChange, compact, 
 
 // ─── Stars ───────────────────────────────────────────────────────────
 function Stars() {
-  return null;
+  const stars = useMemo(
+    () => {
+      const random = createSeededRandom(101);
+      return Array.from({ length: 90 }, (_, index) => ({
+        id: index,
+        top: random() * 34,
+        left: random() * 100,
+        size: 1 + random() * 3,
+        opacity: 0.22 + random() * 0.6,
+      }));
+    },
+    []
+  );
+
+  return (
+    <>
+      {stars.map((star) => (
+        <div
+          key={star.id}
+          style={{
+            position: "absolute",
+            top: `${star.top}%`,
+            left: `${star.left}%`,
+            width: star.size,
+            height: star.size,
+            background: "rgba(255,255,255,0.95)",
+            opacity: star.opacity,
+            pointerEvents: "none",
+          }}
+        />
+      ))}
+    </>
+  );
 }
 
 function CruisingPlanes({ currentKm, topVisibleKm, oceanHeight }) {
-  return null;
+  const isVisible = topVisibleKm >= 10 && currentKm <= 14;
+  if (!isVisible) return null;
+
+  const planes = [
+    { id: "lead", left: "28%", bottom: altitudeToPixels(10.6) + oceanHeight + 16, width: 92, height: 40, opacity: 0.72 },
+    { id: "main", left: "52%", bottom: altitudeToPixels(10) + oceanHeight + 24, width: 112, height: 48, opacity: 0.92 },
+    { id: "trail", left: "74%", bottom: altitudeToPixels(9.4) + oceanHeight + 20, width: 84, height: 36, opacity: 0.64 },
+  ];
+
+  return (
+    <>
+      {planes.map((plane) => (
+        <div
+          key={plane.id}
+          style={{
+            position: "absolute",
+            left: plane.left,
+            bottom: plane.bottom,
+            width: plane.width,
+            height: plane.height,
+            transform: "translateX(-50%)",
+            pointerEvents: "none",
+            zIndex: plane.id === "main" ? 3 : 2,
+            opacity: plane.opacity,
+          }}
+        >
+          <svg
+            width="100%"
+            height="100%"
+            viewBox="0 0 96 40"
+            shapeRendering="crispEdges"
+            aria-hidden="true"
+            style={{ display: "block" }}
+          >
+            <g fill="#dce9f2">
+              <rect x="18" y="18" width="40" height="8" />
+              <rect x="58" y="16" width="18" height="10" />
+              <rect x="76" y="18" width="10" height="6" />
+              <rect x="10" y="14" width="8" height="4" />
+              <rect x="10" y="26" width="8" height="4" />
+              <rect x="22" y="10" width="10" height="4" />
+              <rect x="18" y="14" width="14" height="4" />
+              <rect x="24" y="26" width="10" height="4" />
+              <rect x="20" y="22" width="14" height="4" />
+              <rect x="34" y="6" width="10" height="4" />
+              <rect x="30" y="10" width="16" height="4" />
+              <rect x="38" y="30" width="10" height="4" />
+              <rect x="34" y="26" width="16" height="4" />
+            </g>
+            <g fill="#c7d7e3">
+              <rect x="18" y="24" width="40" height="2" />
+              <rect x="58" y="24" width="16" height="2" />
+              <rect x="76" y="22" width="8" height="2" />
+            </g>
+            <g fill="#29a8df">
+              <rect x="46" y="18" width="4" height="4" />
+              <rect x="54" y="18" width="4" height="4" />
+              <rect x="62" y="18" width="4" height="4" />
+              <rect x="70" y="18" width="4" height="4" />
+              <rect x="78" y="20" width="4" height="2" />
+            </g>
+            <g fill="#366fb6">
+              <rect x="18" y="12" width="10" height="4" />
+              <rect x="14" y="16" width="10" height="4" />
+              <rect x="34" y="8" width="8" height="2" />
+              <rect x="30" y="10" width="10" height="2" />
+              <rect x="20" y="24" width="10" height="4" />
+              <rect x="24" y="28" width="10" height="4" />
+              <rect x="36" y="30" width="10" height="2" />
+            </g>
+            <g fill="#edf4f8">
+              <rect x="82" y="18" width="6" height="6" />
+              <rect x="88" y="20" width="2" height="2" />
+            </g>
+          </svg>
+        </div>
+      ))}
+    </>
+  );
 }
 
 function TroposphereClouds({ oceanHeight }) {
-  return null;
+  const clouds = useMemo(
+    () => {
+      const random = createSeededRandom(202);
+      return Array.from({ length: 8 }, (_, index) => ({
+        id: index,
+        km: random() * 11 + 0.4,
+        left: 8 + random() * 84,
+        scale: 0.8 + random() * 0.8,
+        opacity: 0.82 + random() * 0.12,
+      }));
+    },
+    []
+  );
+
+  return (
+    <>
+      {clouds.map((cloud) => (
+        <div
+          key={cloud.id}
+          style={{
+            position: "absolute",
+            left: `${cloud.left}%`,
+            bottom: altitudeToPixels(cloud.km) + oceanHeight,
+            width: 96 * cloud.scale,
+            height: 48 * cloud.scale,
+            transform: "translateX(-50%)",
+            opacity: cloud.opacity,
+            pointerEvents: "none",
+            zIndex: 2,
+          }}
+        >
+          <svg
+            width="100%"
+            height="100%"
+            viewBox="0 0 96 48"
+            shapeRendering="crispEdges"
+            aria-hidden="true"
+            style={{ display: "block", overflow: "visible" }}
+          >
+            <g fill="rgba(255,255,255,0.98)">
+              <rect x="20" y="32" width="56" height="8" />
+              <rect x="16" y="28" width="64" height="8" />
+              <rect x="12" y="24" width="72" height="8" />
+              <rect x="20" y="16" width="16" height="8" />
+              <rect x="16" y="20" width="24" height="4" />
+              <rect x="36" y="12" width="24" height="12" />
+              <rect x="32" y="16" width="32" height="4" />
+              <rect x="60" y="16" width="16" height="8" />
+              <rect x="56" y="20" width="24" height="4" />
+            </g>
+            <g fill="rgba(214,234,255,0.95)">
+              <rect x="20" y="40" width="56" height="4" />
+              <rect x="76" y="28" width="4" height="8" />
+              <rect x="16" y="36" width="4" height="4" />
+            </g>
+            <g fill="rgba(255,255,255,0.68)">
+              <rect x="24" y="20" width="8" height="4" />
+              <rect x="42" y="16" width="12" height="4" />
+              <rect x="64" y="20" width="8" height="4" />
+            </g>
+          </svg>
+        </div>
+      ))}
+    </>
+  );
 }
 
 function OzoneMolecules({ oceanHeight }) {
@@ -886,35 +1070,20 @@ function BurjComparison({ compact, phone, oceanHeight }) {
         viewBox={`0 0 ${svgWidth} ${svgHeight}`}
         aria-hidden="true"
         style={{ display: "block" }}
+        shapeRendering="crispEdges"
       >
-        <path
-          d={`
-            M 0 ${svgHeight}
-            L 8 ${svgHeight}
-            L 8 ${svgHeight - svgHeight * 0.16}
-            L 12 ${svgHeight - svgHeight * 0.16}
-            L 12 ${svgHeight - svgHeight * 0.34}
-            L 16 ${svgHeight - svgHeight * 0.34}
-            L 16 ${svgHeight - svgHeight * 0.56}
-            L 19 ${svgHeight - svgHeight * 0.56}
-            L 19 ${svgHeight - svgHeight * 0.78}
-            L 21 ${svgHeight - svgHeight * 0.78}
-            L 21 10
-            L 22.5 0
-            L 24 10
-            L 24 ${svgHeight - svgHeight * 0.78}
-            L 27 ${svgHeight - svgHeight * 0.78}
-            L 27 ${svgHeight - svgHeight * 0.56}
-            L 31 ${svgHeight - svgHeight * 0.56}
-            L 31 ${svgHeight - svgHeight * 0.34}
-            L 35 ${svgHeight - svgHeight * 0.34}
-            L 35 ${svgHeight - svgHeight * 0.16}
-            L ${svgWidth} ${svgHeight - svgHeight * 0.16}
-            L ${svgWidth} ${svgHeight}
-            Z
-          `}
-          fill="#6f7782"
-        />
+        <g fill="#6f7782">
+          <rect x={0} y={svgHeight - svgHeight * 0.14} width={svgWidth} height={svgHeight * 0.14} />
+          <rect x={svgWidth * 0.18} y={svgHeight - svgHeight * 0.34} width={svgWidth * 0.64} height={svgHeight * 0.2} />
+          <rect x={svgWidth * 0.28} y={svgHeight - svgHeight * 0.56} width={svgWidth * 0.44} height={svgHeight * 0.22} />
+          <rect x={svgWidth * 0.38} y={svgHeight - svgHeight * 0.76} width={svgWidth * 0.24} height={svgHeight * 0.2} />
+          <rect x={svgWidth * 0.44} y={svgHeight - svgHeight * 0.92} width={svgWidth * 0.12} height={svgHeight * 0.16} />
+          <rect x={svgWidth * 0.47} y={0} width={svgWidth * 0.06} height={svgHeight * 0.08} />
+        </g>
+        <g fill="rgba(255,255,255,0.18)">
+          <rect x={svgWidth * 0.24} y={svgHeight - svgHeight * 0.5} width={svgWidth * 0.06} height={svgHeight * 0.34} />
+          <rect x={svgWidth * 0.42} y={svgHeight - svgHeight * 0.7} width={svgWidth * 0.04} height={svgHeight * 0.46} />
+        </g>
       </svg>
     </div>
   );
@@ -943,24 +1112,34 @@ function MountainComparison({ compact, phone, oceanHeight }) {
         viewBox={`0 0 ${svgWidth} ${svgHeight}`}
         aria-hidden="true"
         style={{ display: "block" }}
+        shapeRendering="crispEdges"
       >
-        <path
-          d={`
-            M 0 ${svgHeight}
-            L ${svgWidth * 0.12} ${svgHeight * 0.8}
-            L ${svgWidth * 0.2} ${svgHeight * 0.76}
-            L ${svgWidth * 0.3} ${svgHeight * 0.5}
-            L ${svgWidth * 0.42} ${svgHeight * 0.3}
-            L ${svgWidth * 0.5} 0
-            L ${svgWidth * 0.6} ${svgHeight * 0.2}
-            L ${svgWidth * 0.72} ${svgHeight * 0.44}
-            L ${svgWidth * 0.82} ${svgHeight * 0.58}
-            L ${svgWidth * 0.9} ${svgHeight * 0.76}
-            L ${svgWidth} ${svgHeight}
-            Z
-          `}
-          fill="#6f7782"
-        />
+        <g fill="#655f8d">
+          <rect x={0} y={svgHeight * 0.84} width={svgWidth} height={svgHeight * 0.16} />
+          <rect x={svgWidth * 0.02} y={svgHeight * 0.76} width={svgWidth * 0.9} height={svgHeight * 0.08} />
+          <rect x={svgWidth * 0.08} y={svgHeight * 0.66} width={svgWidth * 0.76} height={svgHeight * 0.1} />
+          <rect x={svgWidth * 0.14} y={svgHeight * 0.56} width={svgWidth * 0.6} height={svgHeight * 0.1} />
+          <rect x={svgWidth * 0.2} y={svgHeight * 0.46} width={svgWidth * 0.46} height={svgHeight * 0.1} />
+          <rect x={svgWidth * 0.28} y={svgHeight * 0.34} width={svgWidth * 0.3} height={svgHeight * 0.12} />
+          <rect x={svgWidth * 0.32} y={svgHeight * 0.22} width={svgWidth * 0.3} height={svgHeight * 0.12} />
+          <rect x={svgWidth * 0.36} y={svgHeight * 0.12} width={svgWidth * 0.22} height={svgHeight * 0.1} />
+          <rect x={svgWidth * 0.38} y={0} width={svgWidth * 0.18} height={svgHeight * 0.12} />
+          <rect x={svgWidth * 0.56} y={svgHeight * 0.12} width={svgWidth * 0.08} height={svgHeight * 0.1} />
+          <rect x={svgWidth * 0.62} y={svgHeight * 0.28} width={svgWidth * 0.1} height={svgHeight * 0.1} />
+          <rect x={svgWidth * 0.72} y={svgHeight * 0.42} width={svgWidth * 0.1} height={svgHeight * 0.12} />
+          <rect x={svgWidth * 0.82} y={svgHeight * 0.58} width={svgWidth * 0.08} height={svgHeight * 0.18} />
+        </g>
+        <g fill="#8fa2d6">
+          <rect x={svgWidth * 0.18} y={svgHeight * 0.56} width={svgWidth * 0.12} height={svgHeight * 0.1} />
+          <rect x={svgWidth * 0.28} y={svgHeight * 0.44} width={svgWidth * 0.1} height={svgHeight * 0.1} />
+          <rect x={svgWidth * 0.36} y={svgHeight * 0.32} width={svgWidth * 0.14} height={svgHeight * 0.1} />
+          <rect x={svgWidth * 0.5} y={svgHeight * 0.22} width={svgWidth * 0.08} height={svgHeight * 0.1} />
+        </g>
+        <g fill="#eef4ff">
+          <rect x={svgWidth * 0.38} y={0} width={svgWidth * 0.18} height={svgHeight * 0.08} />
+          <rect x={svgWidth * 0.34} y={svgHeight * 0.08} width={svgWidth * 0.24} height={svgHeight * 0.04} />
+          <rect x={svgWidth * 0.32} y={svgHeight * 0.12} width={svgWidth * 0.26} height={svgHeight * 0.04} />
+        </g>
       </svg>
     </div>
   );
@@ -989,24 +1168,31 @@ function KilimanjaroComparison({ compact, phone, oceanHeight }) {
         viewBox={`0 0 ${svgWidth} ${svgHeight}`}
         aria-hidden="true"
         style={{ display: "block" }}
+        shapeRendering="crispEdges"
       >
-        <path
-          d={`
-            M 0 ${svgHeight}
-            L ${svgWidth * 0.1} ${svgHeight * 0.86}
-            L ${svgWidth * 0.2} ${svgHeight * 0.72}
-            L ${svgWidth * 0.32} ${svgHeight * 0.52}
-            L ${svgWidth * 0.44} ${svgHeight * 0.28}
-            L ${svgWidth * 0.5} 0
-            L ${svgWidth * 0.58} ${svgHeight * 0.22}
-            L ${svgWidth * 0.7} ${svgHeight * 0.46}
-            L ${svgWidth * 0.82} ${svgHeight * 0.68}
-            L ${svgWidth * 0.92} ${svgHeight * 0.84}
-            L ${svgWidth} ${svgHeight}
-            Z
-          `}
-          fill="#6f7782"
-        />
+        <g fill="#5f5a88">
+          <rect x={0} y={svgHeight * 0.86} width={svgWidth} height={svgHeight * 0.14} />
+          <rect x={svgWidth * 0.04} y={svgHeight * 0.78} width={svgWidth * 0.84} height={svgHeight * 0.08} />
+          <rect x={svgWidth * 0.1} y={svgHeight * 0.68} width={svgWidth * 0.68} height={svgHeight * 0.1} />
+          <rect x={svgWidth * 0.18} y={svgHeight * 0.56} width={svgWidth * 0.5} height={svgHeight * 0.12} />
+          <rect x={svgWidth * 0.28} y={svgHeight * 0.42} width={svgWidth * 0.32} height={svgHeight * 0.14} />
+          <rect x={svgWidth * 0.34} y={svgHeight * 0.28} width={svgWidth * 0.28} height={svgHeight * 0.14} />
+          <rect x={svgWidth * 0.38} y={svgHeight * 0.16} width={svgWidth * 0.22} height={svgHeight * 0.12} />
+          <rect x={svgWidth * 0.4} y={0} width={svgWidth * 0.18} height={svgHeight * 0.16} />
+          <rect x={svgWidth * 0.56} y={svgHeight * 0.16} width={svgWidth * 0.08} height={svgHeight * 0.12} />
+          <rect x={svgWidth * 0.64} y={svgHeight * 0.34} width={svgWidth * 0.08} height={svgHeight * 0.1} />
+          <rect x={svgWidth * 0.72} y={svgHeight * 0.5} width={svgWidth * 0.08} height={svgHeight * 0.18} />
+        </g>
+        <g fill="#8ea2da">
+          <rect x={svgWidth * 0.22} y={svgHeight * 0.56} width={svgWidth * 0.1} height={svgHeight * 0.12} />
+          <rect x={svgWidth * 0.34} y={svgHeight * 0.42} width={svgWidth * 0.08} height={svgHeight * 0.12} />
+          <rect x={svgWidth * 0.42} y={svgHeight * 0.28} width={svgWidth * 0.12} height={svgHeight * 0.12} />
+        </g>
+        <g fill="#eef5ff">
+          <rect x={svgWidth * 0.4} y={0} width={svgWidth * 0.18} height={svgHeight * 0.1} />
+          <rect x={svgWidth * 0.36} y={svgHeight * 0.1} width={svgWidth * 0.22} height={svgHeight * 0.06} />
+          <rect x={svgWidth * 0.34} y={svgHeight * 0.16} width={svgWidth * 0.22} height={svgHeight * 0.04} />
+        </g>
       </svg>
     </div>
   );
@@ -1029,8 +1215,7 @@ const StaticAtmosphereScene = memo(function StaticAtmosphereScene({
           bottom: 0,
           left: 0,
           right: 0,
-          height: oceanHeight + 24,
-          transform: "translateY(24px)",
+          height: oceanHeight,
           background: "#0e4d6b",
         }}
       />
@@ -1237,10 +1422,11 @@ export default function AtmosphereScrolly() {
   });
   const [hudHeight, setHudHeight] = useState(88);
   const [currentKm, setCurrentKm] = useState(0);
-  const rootRef = useRef(null);
+  const [chapterPause, setChapterPause] = useState(null);
+  const [, setIsTempDragging] = useState(false);
+  const [, setIsRulerDragging] = useState(false);
   const hudRef = useRef(null);
-  const scrollFrameRef = useRef(0);
-  const hasUserNavigated = useRef(false);
+  const touchYRef = useRef(null);
 
   useEffect(() => {
     if (typeof document === "undefined") return undefined;
@@ -1286,20 +1472,158 @@ export default function AtmosphereScrolly() {
   }, [viewport.width]);
 
   useEffect(() => {
-    const markNavigated = () => {
-      hasUserNavigated.current = true;
-    };
+    if (typeof document === "undefined") return undefined;
 
-    window.addEventListener("wheel", markNavigated, { passive: true });
-    window.addEventListener("touchstart", markNavigated, { passive: true });
-    window.addEventListener("keydown", markNavigated);
+    const { body, documentElement } = document;
+    const prevBodyOverflow = body.style.overflow;
+    const prevHtmlOverflow = documentElement.style.overflow;
+    const prevTouchAction = body.style.touchAction;
+    body.style.overflow = "hidden";
+    documentElement.style.overflow = "hidden";
+    body.style.touchAction = "none";
 
     return () => {
-      window.removeEventListener("wheel", markNavigated);
-      window.removeEventListener("touchstart", markNavigated);
-      window.removeEventListener("keydown", markNavigated);
+      body.style.overflow = prevBodyOverflow;
+      documentElement.style.overflow = prevHtmlOverflow;
+      body.style.touchAction = prevTouchAction;
     };
   }, []);
+
+  const setAltitude = useCallback((nextKm) => {
+    setCurrentKm(Math.max(0, Math.min(MAX_ALTITUDE_KM, nextKm)));
+  }, []);
+
+  const releaseChapterPause = useCallback((chapterKm, direction, resumeDirection) => {
+    setChapterPause(null);
+    if (resumeDirection === "forward") {
+      setAltitude(
+        direction === "up"
+          ? chapterKm + CHAPTER_EXIT_EPSILON_KM
+          : chapterKm - CHAPTER_EXIT_EPSILON_KM
+      );
+      return;
+    }
+
+    setAltitude(
+      direction === "up"
+        ? chapterKm - CHAPTER_EXIT_EPSILON_KM
+        : chapterKm + CHAPTER_EXIT_EPSILON_KM
+    );
+  }, [setAltitude]);
+
+  const applyScrollDelta = useCallback((deltaPx) => {
+    if (deltaPx === 0) return;
+
+    if (chapterPause) {
+      const totalPausePx = chapterPause.chapter.lines.length * 300;
+      const forwardPx = chapterPause.direction === "up" ? -deltaPx : deltaPx;
+      const progressDelta = forwardPx / totalPausePx;
+      const nextProgress = chapterPause.progress + progressDelta;
+
+      if (nextProgress >= 1) {
+        releaseChapterPause(chapterPause.chapterKm, chapterPause.direction, "forward");
+        return;
+      }
+
+      if (nextProgress <= 0) {
+        releaseChapterPause(chapterPause.chapterKm, chapterPause.direction, "backward");
+        return;
+      }
+
+      setChapterPause((prev) =>
+        prev
+          ? {
+              ...prev,
+              progress: Math.max(0, Math.min(1, nextProgress)),
+            }
+          : prev
+      );
+      return;
+    }
+
+    setCurrentKm((prev) => {
+      const next = Math.max(0, Math.min(MAX_ALTITUDE_KM, prev - deltaPx / PX_PER_KM));
+      const crossing = findChapterCrossing(CHAPTER_BREAKS, prev, next);
+
+      if (crossing) {
+        setChapterPause({
+          chapterKm: crossing.chapterKm,
+          chapter: crossing.chapter,
+          direction: crossing.direction,
+          progress: crossing.direction === "up" ? 0 : 1,
+        });
+        return crossing.chapterKm;
+      }
+
+      return next;
+    });
+  }, [chapterPause, releaseChapterPause]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+
+    const handleWheel = (event) => {
+      event.preventDefault();
+      const deltaPx = normalizeWheelDelta(event);
+      applyScrollDelta(deltaPx);
+    };
+
+    const handleKeyDown = (event) => {
+      let deltaPx = 0;
+      if (event.key === "ArrowUp") deltaPx = -120;
+      if (event.key === "ArrowDown") deltaPx = 120;
+      if (event.key === "PageUp") deltaPx = -viewport.height * 0.75;
+      if (event.key === "PageDown" || event.key === " ") deltaPx = viewport.height * 0.75;
+      if (event.key === "Home") {
+        event.preventDefault();
+        setChapterPause(null);
+        setAltitude(0);
+        return;
+      }
+      if (event.key === "End") {
+        event.preventDefault();
+        setChapterPause(null);
+        setAltitude(MAX_ALTITUDE_KM);
+        return;
+      }
+      if (deltaPx === 0) return;
+      event.preventDefault();
+      applyScrollDelta(deltaPx);
+    };
+
+    const handleTouchStart = (event) => {
+      touchYRef.current = event.touches[0]?.clientY ?? null;
+    };
+
+    const handleTouchMove = (event) => {
+      const nextY = event.touches[0]?.clientY;
+      if (touchYRef.current == null || nextY == null) return;
+      event.preventDefault();
+      const deltaPx = touchYRef.current - nextY;
+      touchYRef.current = nextY;
+      applyScrollDelta(-deltaPx);
+    };
+
+    const handleTouchEnd = () => {
+      touchYRef.current = null;
+    };
+
+    window.addEventListener("wheel", handleWheel, { passive: false });
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("touchstart", handleTouchStart, { passive: false });
+    window.addEventListener("touchmove", handleTouchMove, { passive: false });
+    window.addEventListener("touchend", handleTouchEnd, { passive: true });
+    window.addEventListener("touchcancel", handleTouchEnd, { passive: true });
+
+    return () => {
+      window.removeEventListener("wheel", handleWheel);
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("touchstart", handleTouchStart);
+      window.removeEventListener("touchmove", handleTouchMove);
+      window.removeEventListener("touchend", handleTouchEnd);
+      window.removeEventListener("touchcancel", handleTouchEnd);
+    };
+  }, [applyScrollDelta, setAltitude, viewport.height]);
 
   const isPhone = viewport.width < 680;
   const isCompact = viewport.width < 900;
@@ -1310,9 +1634,8 @@ export default function AtmosphereScrolly() {
   const contentRight = showRuler ? overlayWidth + overlayGap : 0;
   const desktopLabelInset = contentLeft + 20;
   const visibleSceneHeight = Math.max(viewport.height, 320);
-  const oceanHeight = Math.round(Math.max(visibleSceneHeight - hudHeight, 0) / 2);
+  const oceanHeight = Math.round(visibleSceneHeight / 2);
   const totalHeight = ATM_HEIGHT + oceanHeight;
-  const maxTravelPx = Math.max(0, totalHeight - visibleSceneHeight / 2 - oceanHeight);
   const sceneOffsetPx = Math.max(
     0,
     totalHeight - visibleSceneHeight / 2 - oceanHeight - altitudeToPixels(currentKm)
@@ -1323,69 +1646,10 @@ export default function AtmosphereScrolly() {
   const profileTopOffset = isPhone ? hudHeight + 8 : desktopOverlayTop;
   const profileAvailableHeight = isPhone ? Math.max(viewport.height - hudHeight - 16, 320) : desktopOverlayHeight;
 
-  const syncScrollToAltitude = useCallback(() => {
-    if (!rootRef.current || typeof window === "undefined") return;
-
-    const rootTop = rootRef.current.getBoundingClientRect().top + window.scrollY;
-    const localScroll = Math.min(
-      maxTravelPx,
-      Math.max(0, window.scrollY - rootTop)
-    );
-    const nextKm = pixelsToAltitude(localScroll);
-
-    setCurrentKm((prev) => {
-      const clamped = Math.max(0, Math.min(MAX_ALTITUDE_KM, nextKm));
-      return Math.abs(prev - clamped) < 0.01 ? prev : clamped;
-    });
-  }, [maxTravelPx]);
-
-  const requestScrollSync = useCallback(() => {
-    if (scrollFrameRef.current) return;
-
-    scrollFrameRef.current = requestAnimationFrame(() => {
-      scrollFrameRef.current = 0;
-      syncScrollToAltitude();
-    });
-  }, [syncScrollToAltitude]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return undefined;
-
-    const handleScroll = () => {
-      requestScrollSync();
-    };
-
-    requestScrollSync();
-    window.addEventListener("scroll", handleScroll, { passive: true });
-
-    return () => {
-      if (scrollFrameRef.current) {
-        cancelAnimationFrame(scrollFrameRef.current);
-        scrollFrameRef.current = 0;
-      }
-      window.removeEventListener("scroll", handleScroll);
-    };
-  }, [requestScrollSync]);
-
-  const scrollToAltitude = useCallback(
-    (km) => {
-      if (!rootRef.current || typeof window === "undefined") return;
-
-      const rootTop = rootRef.current.getBoundingClientRect().top + window.scrollY;
-      const targetScroll = Math.min(
-        maxTravelPx,
-        Math.max(0, altitudeToPixels(km))
-      );
-      window.scrollTo({ top: rootTop + targetScroll, behavior: "auto" });
-      setCurrentKm(Math.max(0, Math.min(MAX_ALTITUDE_KM, km)));
-    },
-    [maxTravelPx]
-  );
-
-  useEffect(() => {
-    if (!rootRef.current || hasUserNavigated.current || typeof window === "undefined") return;
-    scrollToAltitude(0);
-  }, [scrollToAltitude]);
+  const scrollToAltitude = useCallback((km) => {
+    setChapterPause(null);
+    setAltitude(km);
+  }, [setAltitude]);
 
   const handleReset = useCallback(() => {
     scrollToAltitude(0);
@@ -1398,6 +1662,7 @@ export default function AtmosphereScrolly() {
     pressure >= 1
       ? pressure.toFixed(0) + " hPa"
       : pressure.toExponential(1) + " hPa";
+  const tempTrendColor = getTemperatureTrendColor(currentKm);
   const currentLayer = layers.find(
     (layer) => currentKm >= layer.startKm && currentKm < layer.endKm
   );
@@ -1405,9 +1670,8 @@ export default function AtmosphereScrolly() {
     MAX_ALTITUDE_KM,
     currentKm + pixelsToAltitude(visibleSceneHeight / 2)
   );
-  const activeChapterState = getChapterOverlayState(CHAPTER_BREAKS, currentKm);
-  const activeChapter = activeChapterState?.chapter ?? null;
-  const chapterProgress = activeChapterState?.progress ?? 0;
+  const activeChapter = chapterPause?.chapter ?? null;
+  const chapterProgress = chapterPause?.progress ?? 0;
   const behindChapterStyle = {};
 
   return (
@@ -1463,7 +1727,9 @@ export default function AtmosphereScrolly() {
             {currentLayer?.name || "Exosphere"}
           </div>
           <div style={{ fontSize: isPhone ? "16px" : "18px", color: "rgba(255,255,255,0.8)", fontFamily: "'Roboto Mono', monospace", lineHeight: 1.4 }}>
-            {formatTempWithF(Number(temp))} · {pressureStr}
+            <span style={{ color: tempTrendColor }}>{formatTempWithF(Number(temp))}</span>
+            {" · "}
+            <span>{pressureStr}</span>
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", marginLeft: isPhone ? "auto" : 0 }}>
@@ -1509,18 +1775,17 @@ export default function AtmosphereScrolly() {
         />
       )}
       <div
-        ref={rootRef}
         style={{
-          position: "relative",
-          height: `${maxTravelPx + viewport.height}px`,
+          position: "fixed",
+          inset: 0,
           background: "#000",
         }}
       >
         <div
           style={{
-            position: "sticky",
-            top: 0,
-            height: "100svh",
+            position: "absolute",
+            inset: 0,
+            height: `${visibleSceneHeight}px`,
             overflow: "hidden",
             background: bgColor,
           }}
