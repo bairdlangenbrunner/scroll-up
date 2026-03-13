@@ -1041,7 +1041,50 @@ function TroposphereClouds({ oceanHeight }) {
 }
 
 function OzoneMolecules({ oceanHeight }) {
-  return null;
+  const molecules = useMemo(() => {
+    const random = createSeededRandom(777);
+    return Array.from({ length: 18 }, (_, i) => ({
+      id: i,
+      km: 14 + random() * 28,        // 14–42 km, concentrated in ozone layer
+      left: 5 + random() * 90,        // % across scene
+      opacity: 0.28 + random() * 0.32,
+      scale: 0.7 + random() * 0.6,
+    }));
+  }, []);
+
+  return (
+    <>
+      {molecules.map((m) => {
+        const size = Math.round(6 * m.scale);
+        const gap = Math.round(3 * m.scale);
+        const w = size * 3 + gap * 2;
+        const h = size * 2 + gap;
+        return (
+          <div
+            key={m.id}
+            style={{
+              position: "absolute",
+              left: `${m.left}%`,
+              bottom: altitudeToPixels(m.km) + oceanHeight,
+              width: w,
+              height: h,
+              transform: "translateX(-50%)",
+              opacity: m.opacity,
+              pointerEvents: "none",
+              zIndex: 2,
+            }}
+          >
+            <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} shapeRendering="crispEdges" aria-hidden="true">
+              {/* O3: three atoms in bent arrangement — center atom top, two flanking below */}
+              <rect x={size + gap} y={0}          width={size} height={size} fill="#a0d4f5" />
+              <rect x={0}          y={size + gap}  width={size} height={size} fill="#78bce8" />
+              <rect x={size*2+gap*2} y={size + gap} width={size} height={size} fill="#78bce8" />
+            </svg>
+          </div>
+        );
+      })}
+    </>
+  );
 }
 
 function BurjComparison({ compact, phone, oceanHeight }) {
@@ -1088,7 +1131,7 @@ function BurjComparison({ compact, phone, oceanHeight }) {
 }
 
 function EverestComparison({ compact, phone, oceanHeight }) {
-  const svgWidth = phone ? 124 : compact ? 184 : 244;
+  const svgWidth = phone ? 150 : compact ? 220 : 300;
   const svgHeight = altitudeToPixels(8.849);
 
   return (
@@ -1113,31 +1156,38 @@ function EverestComparison({ compact, phone, oceanHeight }) {
         style={{ display: "block" }}
         shapeRendering="crispEdges"
       >
-        {/* Mountain body — wide base tapering to a peak (~7% step per side per layer) */}
+        {/* Everest — gradual left slope, near-vertical right cliff. Varying layer heights break the uniform-floor look. */}
+        {/* Left edge: 0→43% (gradual). Right edge: 100→85→77→73→70→68→67→67→67→67 (cliff from layer 3 up). */}
         <g fill="#655f8d">
           <rect x={0}                  y={svgHeight * 0.88} width={svgWidth}            height={svgHeight * 0.12} />
-          <rect x={svgWidth * 0.07}    y={svgHeight * 0.77} width={svgWidth * 0.86}     height={svgHeight * 0.11} />
-          <rect x={svgWidth * 0.14}    y={svgHeight * 0.66} width={svgWidth * 0.72}     height={svgHeight * 0.11} />
-          <rect x={svgWidth * 0.21}    y={svgHeight * 0.55} width={svgWidth * 0.58}     height={svgHeight * 0.11} />
-          <rect x={svgWidth * 0.28}    y={svgHeight * 0.44} width={svgWidth * 0.44}     height={svgHeight * 0.11} />
-          <rect x={svgWidth * 0.35}    y={svgHeight * 0.33} width={svgWidth * 0.30}     height={svgHeight * 0.11} />
-          <rect x={svgWidth * 0.39}    y={svgHeight * 0.22} width={svgWidth * 0.22}     height={svgHeight * 0.11} />
-          <rect x={svgWidth * 0.42}    y={svgHeight * 0.12} width={svgWidth * 0.16}     height={svgHeight * 0.10} />
-          <rect x={svgWidth * 0.44}    y={0}                width={svgWidth * 0.12}     height={svgHeight * 0.12} />
+          <rect x={svgWidth * 0.04}    y={svgHeight * 0.78} width={svgWidth * 0.81}     height={svgHeight * 0.10} />
+          <rect x={svgWidth * 0.08}    y={svgHeight * 0.68} width={svgWidth * 0.69}     height={svgHeight * 0.10} />
+          <rect x={svgWidth * 0.12}    y={svgHeight * 0.58} width={svgWidth * 0.61}     height={svgHeight * 0.10} />
+          <rect x={svgWidth * 0.17}    y={svgHeight * 0.48} width={svgWidth * 0.53}     height={svgHeight * 0.10} />
+          <rect x={svgWidth * 0.22}    y={svgHeight * 0.39} width={svgWidth * 0.46}     height={svgHeight * 0.09} />
+          <rect x={svgWidth * 0.28}    y={svgHeight * 0.30} width={svgWidth * 0.39}     height={svgHeight * 0.09} />
+          <rect x={svgWidth * 0.33}    y={svgHeight * 0.22} width={svgWidth * 0.34}     height={svgHeight * 0.08} />
+          <rect x={svgWidth * 0.38}    y={svgHeight * 0.14} width={svgWidth * 0.29}     height={svgHeight * 0.08} />
+          <rect x={svgWidth * 0.43}    y={0}                width={svgWidth * 0.24}     height={svgHeight * 0.14} />
         </g>
-        {/* Left-face highlight (lighter blue-purple) */}
+        {/* Left-face highlight (illuminated gradual slope) */}
         <g fill="#8fa2d6">
-          <rect x={svgWidth * 0.07}    y={svgHeight * 0.77} width={svgWidth * 0.07}     height={svgHeight * 0.11} />
-          <rect x={svgWidth * 0.14}    y={svgHeight * 0.66} width={svgWidth * 0.07}     height={svgHeight * 0.11} />
-          <rect x={svgWidth * 0.21}    y={svgHeight * 0.55} width={svgWidth * 0.07}     height={svgHeight * 0.11} />
-          <rect x={svgWidth * 0.28}    y={svgHeight * 0.44} width={svgWidth * 0.07}     height={svgHeight * 0.11} />
-          <rect x={svgWidth * 0.35}    y={svgHeight * 0.33} width={svgWidth * 0.06}     height={svgHeight * 0.11} />
+          <rect x={svgWidth * 0.04}    y={svgHeight * 0.78} width={svgWidth * 0.06}     height={svgHeight * 0.10} />
+          <rect x={svgWidth * 0.08}    y={svgHeight * 0.68} width={svgWidth * 0.06}     height={svgHeight * 0.10} />
+          <rect x={svgWidth * 0.12}    y={svgHeight * 0.58} width={svgWidth * 0.06}     height={svgHeight * 0.10} />
+          <rect x={svgWidth * 0.17}    y={svgHeight * 0.48} width={svgWidth * 0.06}     height={svgHeight * 0.10} />
+          <rect x={svgWidth * 0.22}    y={svgHeight * 0.39} width={svgWidth * 0.05}     height={svgHeight * 0.09} />
         </g>
-        {/* Snow cap */}
+        {/* Snow cap (white) */}
         <g fill="#eef4ff">
-          <rect x={svgWidth * 0.44}    y={0}                width={svgWidth * 0.12}     height={svgHeight * 0.07} />
-          <rect x={svgWidth * 0.42}    y={svgHeight * 0.07} width={svgWidth * 0.14}     height={svgHeight * 0.03} />
-          <rect x={svgWidth * 0.41}    y={svgHeight * 0.10} width={svgWidth * 0.15}     height={svgHeight * 0.02} />
+          <rect x={svgWidth * 0.43}    y={0}                width={svgWidth * 0.24}     height={svgHeight * 0.08} />
+          <rect x={svgWidth * 0.41}    y={svgHeight * 0.08} width={svgWidth * 0.26}     height={svgHeight * 0.04} />
+          <rect x={svgWidth * 0.39}    y={svgHeight * 0.12} width={svgWidth * 0.26}     height={svgHeight * 0.02} />
+        </g>
+        {/* Snow shadow (right cliff face) */}
+        <g fill="#b8c4d6">
+          <rect x={svgWidth * 0.57}    y={0}                width={svgWidth * 0.10}     height={svgHeight * 0.08} />
+          <rect x={svgWidth * 0.56}    y={svgHeight * 0.08} width={svgWidth * 0.11}     height={svgHeight * 0.04} />
         </g>
       </svg>
     </div>
@@ -1145,7 +1195,7 @@ function EverestComparison({ compact, phone, oceanHeight }) {
 }
 
 function KilimanjaroComparison({ compact, phone, oceanHeight }) {
-  const svgWidth = phone ? 104 : compact ? 148 : 196;
+  const svgWidth = phone ? 126 : compact ? 180 : 240;
   const svgHeight = altitudeToPixels(5.895);
 
   return (
@@ -1170,31 +1220,38 @@ function KilimanjaroComparison({ compact, phone, oceanHeight }) {
         style={{ display: "block" }}
         shapeRendering="crispEdges"
       >
-        {/* Mountain body — wide base tapering to a peak (~7% step per side per layer) */}
+        {/* Kilimanjaro — near-vertical left cliff, gradual right slope. Opposite asymmetry to Everest. */}
+        {/* Left edge: 0→8→16→22→27→31→31→31→31→32 (cliff from layer 4 up). Right: 100→93→87→81→75→68→60→53→51→51 (gradual). */}
         <g fill="#5f5a88">
           <rect x={0}                  y={svgHeight * 0.88} width={svgWidth}            height={svgHeight * 0.12} />
-          <rect x={svgWidth * 0.07}    y={svgHeight * 0.77} width={svgWidth * 0.86}     height={svgHeight * 0.11} />
-          <rect x={svgWidth * 0.14}    y={svgHeight * 0.66} width={svgWidth * 0.72}     height={svgHeight * 0.11} />
-          <rect x={svgWidth * 0.21}    y={svgHeight * 0.55} width={svgWidth * 0.58}     height={svgHeight * 0.11} />
-          <rect x={svgWidth * 0.28}    y={svgHeight * 0.44} width={svgWidth * 0.44}     height={svgHeight * 0.11} />
-          <rect x={svgWidth * 0.35}    y={svgHeight * 0.33} width={svgWidth * 0.30}     height={svgHeight * 0.11} />
-          <rect x={svgWidth * 0.39}    y={svgHeight * 0.22} width={svgWidth * 0.22}     height={svgHeight * 0.11} />
-          <rect x={svgWidth * 0.42}    y={svgHeight * 0.12} width={svgWidth * 0.16}     height={svgHeight * 0.10} />
-          <rect x={svgWidth * 0.44}    y={0}                width={svgWidth * 0.12}     height={svgHeight * 0.12} />
+          <rect x={svgWidth * 0.08}    y={svgHeight * 0.78} width={svgWidth * 0.85}     height={svgHeight * 0.10} />
+          <rect x={svgWidth * 0.16}    y={svgHeight * 0.68} width={svgWidth * 0.71}     height={svgHeight * 0.10} />
+          <rect x={svgWidth * 0.22}    y={svgHeight * 0.59} width={svgWidth * 0.59}     height={svgHeight * 0.09} />
+          <rect x={svgWidth * 0.27}    y={svgHeight * 0.50} width={svgWidth * 0.48}     height={svgHeight * 0.09} />
+          <rect x={svgWidth * 0.31}    y={svgHeight * 0.41} width={svgWidth * 0.37}     height={svgHeight * 0.09} />
+          <rect x={svgWidth * 0.31}    y={svgHeight * 0.33} width={svgWidth * 0.29}     height={svgHeight * 0.08} />
+          <rect x={svgWidth * 0.31}    y={svgHeight * 0.25} width={svgWidth * 0.22}     height={svgHeight * 0.08} />
+          <rect x={svgWidth * 0.31}    y={svgHeight * 0.14} width={svgWidth * 0.20}     height={svgHeight * 0.11} />
+          <rect x={svgWidth * 0.32}    y={0}                width={svgWidth * 0.19}     height={svgHeight * 0.14} />
         </g>
-        {/* Left-face highlight (lighter blue-purple) */}
+        {/* Right-face highlight (illuminated gradual slope faces right) */}
         <g fill="#8ea2da">
-          <rect x={svgWidth * 0.07}    y={svgHeight * 0.77} width={svgWidth * 0.07}     height={svgHeight * 0.11} />
-          <rect x={svgWidth * 0.14}    y={svgHeight * 0.66} width={svgWidth * 0.07}     height={svgHeight * 0.11} />
-          <rect x={svgWidth * 0.21}    y={svgHeight * 0.55} width={svgWidth * 0.07}     height={svgHeight * 0.11} />
-          <rect x={svgWidth * 0.28}    y={svgHeight * 0.44} width={svgWidth * 0.07}     height={svgHeight * 0.11} />
-          <rect x={svgWidth * 0.35}    y={svgHeight * 0.33} width={svgWidth * 0.06}     height={svgHeight * 0.11} />
+          <rect x={svgWidth * 0.56}    y={svgHeight * 0.78} width={svgWidth * 0.05}     height={svgHeight * 0.10} />
+          <rect x={svgWidth * 0.55}    y={svgHeight * 0.68} width={svgWidth * 0.05}     height={svgHeight * 0.10} />
+          <rect x={svgWidth * 0.53}    y={svgHeight * 0.59} width={svgWidth * 0.05}     height={svgHeight * 0.09} />
+          <rect x={svgWidth * 0.51}    y={svgHeight * 0.50} width={svgWidth * 0.05}     height={svgHeight * 0.09} />
+          <rect x={svgWidth * 0.50}    y={svgHeight * 0.41} width={svgWidth * 0.04}     height={svgHeight * 0.09} />
         </g>
-        {/* Snow cap */}
+        {/* Snow cap (white) */}
         <g fill="#eef5ff">
-          <rect x={svgWidth * 0.44}    y={0}                width={svgWidth * 0.12}     height={svgHeight * 0.07} />
-          <rect x={svgWidth * 0.42}    y={svgHeight * 0.07} width={svgWidth * 0.14}     height={svgHeight * 0.03} />
-          <rect x={svgWidth * 0.41}    y={svgHeight * 0.10} width={svgWidth * 0.15}     height={svgHeight * 0.02} />
+          <rect x={svgWidth * 0.32}    y={0}                width={svgWidth * 0.19}     height={svgHeight * 0.08} />
+          <rect x={svgWidth * 0.31}    y={svgHeight * 0.08} width={svgWidth * 0.20}     height={svgHeight * 0.04} />
+          <rect x={svgWidth * 0.31}    y={svgHeight * 0.12} width={svgWidth * 0.19}     height={svgHeight * 0.02} />
+        </g>
+        {/* Snow shadow (right face of snow) */}
+        <g fill="#b8c4d6">
+          <rect x={svgWidth * 0.41}    y={0}                width={svgWidth * 0.10}     height={svgHeight * 0.08} />
+          <rect x={svgWidth * 0.40}    y={svgHeight * 0.08} width={svgWidth * 0.11}     height={svgHeight * 0.04} />
         </g>
       </svg>
     </div>
@@ -1438,7 +1495,7 @@ export default function AtmosphereScrolly() {
       link.id = "gfonts-atm";
       link.rel = "stylesheet";
       link.href =
-        "https://fonts.googleapis.com/css2?family=Domine:wght@400;500;600;700&family=Open+Sans:wght@300;400;500;600;700&family=Roboto+Mono:wght@300;400;500;600&display=swap";
+        "https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300;400;500;600&display=swap";
       document.head.appendChild(link);
     }
     return undefined;
