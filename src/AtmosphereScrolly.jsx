@@ -71,8 +71,8 @@ const landmarks = [
   { km: 12, label: "Tropopause", detail: "The boundary where weather ends and the stratosphere begins", isBoundary: true },
   { km: 13.7, label: "80% of the atmosphere by mass", detail: "About 80% of the atmosphere's mass lies below roughly 13.7 km" },
   { km: 16, label: "Lower stratosphere", detail: "The air here is very dry and stable; most water vapor is trapped below the tropopause" },
-  { km: 20, label: "Ozone layer begins", detail: "Peak ozone concentration is around 20–25 km" },
-  { km: 35, label: "Peak ozone density", detail: "Maximum O₃ concentration; blocks UV-B and UV-C" },
+  { km: 20, label: "Ozone layer begins", detail: "Most ozone by number is concentrated around 20–25 km" },
+  { km: 35, label: "Peak ozone fraction", detail: "Ozone makes up its largest share of the air here; it helps block UV-B and UV-C" },
   { km: 39, label: "Felix Baumgartner's jump", detail: "Jumped from 39 km in 2012, broke the sound barrier in freefall" },
   { km: 50, label: "Stratopause", detail: "Temperature peaks here (~0°C / 32°F) before dropping again", isBoundary: true },
   { km: 80, label: "Noctilucent clouds", detail: "Earth's highest clouds, ice crystals glowing after sunset" },
@@ -1190,7 +1190,7 @@ function PixelSatellite({
 
 function PolarOrbitSatellites({ oceanHeight }) {
   const satellites = [
-    { id: "primary", km: 425, left: "50%", scale: 1, opacity: 0.95, duration: "19s", delay: "0s" },
+    { id: "primary", km: 425.5, left: "50%", scale: 1, opacity: 0.95, duration: "19s", delay: "0s" },
     { id: "trail-1", km: 423.5, left: "62%", scale: 0.82, opacity: 0.82, duration: "16s", delay: "-5.2s" },
     { id: "trail-2", km: 429, left: "38%", scale: 0.68, opacity: 0.74, duration: "21s", delay: "-9.1s" },
   ];
@@ -1309,7 +1309,7 @@ function Stars() {
         id: index,
         top: random() * 34,
         left: random() * 100,
-        size: 1 + random() * 3,
+        size: 2 + random() * 5,
         opacity: 0.22 + random() * 0.6,
       }));
     },
@@ -1572,8 +1572,10 @@ function AuroraBackground({ oceanHeight, viewportHeight }) {
   const centerPx = altitudeToPixels(300) + oceanHeight;
   const half = viewportHeight / 2;
   const auroraStartPx = centerPx - half;
-  const crownBottomPx = altitudeToPixels(325) + oceanHeight - half;
-  const crownHeight = viewportHeight * 2.1;
+  const crownHeight = viewportHeight * 3.1;
+  const crownPeakPx = altitudeToPixels(325) + oceanHeight;
+  const crownPeakPct = 0.74;
+  const crownBottomPx = crownPeakPx - crownHeight * crownPeakPct;
   const auroraHeight = Math.max(viewportHeight * 2, crownBottomPx - auroraStartPx + crownHeight);
   return (
     <>
@@ -1903,10 +1905,9 @@ function OzoneMolecules({ oceanHeight }) {
   return (
     <>
       {molecules.map((m) => {
-        const size = Math.round(6 * m.scale);
-        const gap = Math.round(3 * m.scale);
-        const w = size * 3 + gap * 2;
-        const h = size * 2 + gap;
+        const pixel = Math.max(1, Math.round(2 * m.scale));
+        const w = 18 * pixel;
+        const h = 13 * pixel;
         return (
           <div
             key={m.id}
@@ -1923,10 +1924,25 @@ function OzoneMolecules({ oceanHeight }) {
             }}
           >
             <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} shapeRendering="crispEdges" aria-hidden="true">
-              {/* O3: three atoms in bent arrangement — center atom top, two flanking below */}
-              <rect x={size + gap} y={0}          width={size} height={size} fill="#a0d4f5" />
-              <rect x={0}          y={size + gap}  width={size} height={size} fill="#78bce8" />
-              <rect x={size*2+gap*2} y={size + gap} width={size} height={size} fill="#78bce8" />
+              <g fill="#4c86b5">
+                {/* O */}
+                <rect x={0} y={2 * pixel} width={1 * pixel} height={6 * pixel} />
+                <rect x={1 * pixel} y={1 * pixel} width={5 * pixel} height={1 * pixel} />
+                <rect x={1 * pixel} y={8 * pixel} width={5 * pixel} height={1 * pixel} />
+                <rect x={6 * pixel} y={2 * pixel} width={1 * pixel} height={6 * pixel} />
+
+                {/* 3 as subscript */}
+                <rect x={10 * pixel} y={6 * pixel} width={3 * pixel} height={1 * pixel} />
+                <rect x={12 * pixel} y={7 * pixel} width={1 * pixel} height={2 * pixel} />
+                <rect x={10 * pixel} y={9 * pixel} width={2 * pixel} height={1 * pixel} />
+                <rect x={12 * pixel} y={10 * pixel} width={1 * pixel} height={2 * pixel} />
+                <rect x={10 * pixel} y={12 * pixel} width={3 * pixel} height={1 * pixel} />
+              </g>
+
+              <g fill="#bfe5ff">
+                <rect x={2 * pixel} y={2 * pixel} width={1 * pixel} height={1 * pixel} />
+                <rect x={10 * pixel} y={7 * pixel} width={1 * pixel} height={1 * pixel} />
+              </g>
             </svg>
           </div>
         );
