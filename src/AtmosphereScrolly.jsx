@@ -1555,7 +1555,6 @@ export default function AtmosphereScrolly() {
     const el = containerRef.current;
     if (!el) return;
 
-    let rafId = null;
     const handleScroll = () => {
       // frozenScrollTop is a ref so this always reads the latest value —
       // altitude display unfreezes the instant frozenScrollTop is cleared,
@@ -1564,22 +1563,12 @@ export default function AtmosphereScrolly() {
         containerRef.current.scrollTop = frozenScrollTop.current;
         return;
       }
-      // Throttle to one React state update per animation frame so momentum
-      // scroll isn't broken by high-frequency re-renders.
-      if (rafId === null) {
-        rafId = requestAnimationFrame(() => {
-          rafId = null;
-          updateAltitude();
-        });
-      }
+      updateAltitude();
     };
 
     el.addEventListener("scroll", handleScroll, { passive: true });
 
-    return () => {
-      el.removeEventListener("scroll", handleScroll);
-      if (rafId !== null) cancelAnimationFrame(rafId);
-    };
+    return () => el.removeEventListener("scroll", handleScroll);
   }, [updateAltitude]);
 
   useEffect(() => {
@@ -1744,8 +1733,9 @@ export default function AtmosphereScrolly() {
         ref={containerRef}
         style={{
           flex: 1,
-          overflowY: "auto",
+          overflowY: "scroll",
           overflowX: "hidden",
+          WebkitOverflowScrolling: "touch",
           background: bgColor,
           transition: "background 0.15s ease",
           position: "relative",
