@@ -483,7 +483,7 @@ function TempProfile({ currentKm, showClimate, onDragAltitude, onDragStateChange
           onTouchStart={handleDragStart}
           style={{
             display: "block",
-            overflow: "visible",
+            overflow: "hidden",
             background: minimalMobileRail ? "rgba(0,0,0,0.2)" : "rgba(0,0,0,0.35)",
             borderRadius: minimalMobileRail ? 10 : 10,
             border: minimalMobileRail
@@ -544,6 +544,15 @@ function TempProfile({ currentKm, showClimate, onDragAltitude, onDragStateChange
               ))}
             </>
           )}
+
+          {/* fill: bottom of SVG → current altitude, like a graduated cylinder */}
+          <rect
+            x={0}
+            y={curY}
+            width={svgWidth}
+            height={svgHeight - curY}
+            fill="rgba(90, 160, 210, 0.26)"
+          />
 
           <path d={pathD} fill="none" stroke="rgba(255,180,100,0.78)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
 
@@ -700,6 +709,20 @@ function AltitudeRuler({ currentKm, onDragAltitude, onDragStateChange, compact, 
           pointerEvents: "auto",
         }}
       >
+        {/* fill: bottom of ruler → current altitude, like a graduated cylinder */}
+        <div
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            bottom: 0,
+            height: (currentKm / MAX_ALTITUDE_KM) * trackH + rulerInset,
+            background: "rgba(90, 160, 210, 0.26)",
+            borderRadius: "0 0 12px 12px",
+            pointerEvents: "none",
+          }}
+        />
+
         <div
           style={{
             position: "absolute",
@@ -885,6 +908,96 @@ function PixelUFO({ oceanHeight, isPhone, hudHeight }) {
   );
 }
 
+// ─── Pixel Octopus ───────────────────────────────────────────────────
+function PixelJellyfish({ oceanHeight, left = "68%", bottomFraction = 0.62, width = 38, height = 52, delay = "0s" }) {
+  return (
+    <div
+      style={{
+        position: "absolute",
+        left,
+        bottom: Math.round(oceanHeight * bottomFraction),
+        transform: "translateX(-50%)",
+        pointerEvents: "none",
+        zIndex: 2,
+        animation: `jellyfish-bob 3.5s ease-in-out ${delay} infinite`,
+      }}
+    >
+      <style>{`
+        @keyframes jellyfish-bob {
+          0%, 100% { transform: translateX(-50%) translateY(0px); }
+          50%       { transform: translateX(-50%) translateY(-12px); }
+        }
+      `}</style>
+      <svg width={width} height={height} viewBox="0 0 48 66" shapeRendering="crispEdges" aria-hidden="true">
+        {/* Bell — outer body */}
+        <g fill="#7838a8">
+          <rect x="16" y="0"  width="16" height="4" />
+          <rect x="10" y="4"  width="28" height="4" />
+          <rect x="6"  y="8"  width="36" height="4" />
+          <rect x="4"  y="12" width="40" height="4" />
+          <rect x="2"  y="16" width="44" height="4" />
+          <rect x="2"  y="20" width="44" height="4" />
+          <rect x="2"  y="24" width="44" height="4" />
+          <rect x="4"  y="28" width="40" height="4" />
+        </g>
+        {/* Bell — inner bioluminescent glow */}
+        <g fill="#c060e0">
+          <rect x="18" y="4"  width="12" height="4" />
+          <rect x="14" y="8"  width="20" height="4" />
+          <rect x="12" y="12" width="24" height="4" />
+          <rect x="12" y="16" width="24" height="4" />
+          <rect x="14" y="20" width="20" height="4" />
+          <rect x="16" y="24" width="16" height="4" />
+        </g>
+        {/* Bell — bright core */}
+        <g fill="#e880f8">
+          <rect x="20" y="8"  width="8"  height="4" />
+          <rect x="18" y="12" width="12" height="4" />
+          <rect x="18" y="16" width="12" height="4" />
+          <rect x="20" y="20" width="8"  height="4" />
+        </g>
+        {/* Bell — top highlight */}
+        <g fill="#d0a0f0">
+          <rect x="18" y="1"  width="8"  height="2" />
+          <rect x="12" y="5"  width="6"  height="2" />
+        </g>
+        {/* Bell — frilly bottom edge */}
+        <g fill="#9848c8">
+          <rect x="4"  y="32" width="6"  height="4" />
+          <rect x="14" y="32" width="6"  height="6" />
+          <rect x="24" y="32" width="6"  height="4" />
+          <rect x="34" y="32" width="6"  height="6" />
+          <rect x="40" y="32" width="4"  height="4" />
+        </g>
+        {/* Tentacles — thin (2px), long, wavy */}
+        <g fill="#a050c8">
+          {/* T1 */}
+          <rect x="7"  y="38" width="2" height="4" /><rect x="5"  y="42" width="2" height="4" /><rect x="7"  y="46" width="2" height="4" /><rect x="5"  y="50" width="2" height="4" /><rect x="7"  y="54" width="2" height="4" /><rect x="5"  y="58" width="2" height="4" />
+          {/* T2 */}
+          <rect x="14" y="36" width="2" height="4" /><rect x="16" y="40" width="2" height="4" /><rect x="14" y="44" width="2" height="4" /><rect x="16" y="48" width="2" height="4" /><rect x="14" y="52" width="2" height="4" /><rect x="16" y="56" width="2" height="4" />
+          {/* T3 */}
+          <rect x="21" y="38" width="2" height="4" /><rect x="19" y="42" width="2" height="4" /><rect x="21" y="46" width="2" height="4" /><rect x="19" y="50" width="2" height="4" /><rect x="21" y="54" width="2" height="4" /><rect x="19" y="58" width="2" height="4" />
+          {/* T4 — center */}
+          <rect x="27" y="36" width="2" height="4" /><rect x="25" y="40" width="2" height="4" /><rect x="27" y="44" width="2" height="4" /><rect x="25" y="48" width="2" height="4" /><rect x="27" y="52" width="2" height="4" /><rect x="25" y="56" width="2" height="4" />
+          {/* T5 */}
+          <rect x="33" y="38" width="2" height="4" /><rect x="35" y="42" width="2" height="4" /><rect x="33" y="46" width="2" height="4" /><rect x="35" y="50" width="2" height="4" /><rect x="33" y="54" width="2" height="4" /><rect x="35" y="58" width="2" height="4" />
+          {/* T6 */}
+          <rect x="40" y="36" width="2" height="4" /><rect x="38" y="40" width="2" height="4" /><rect x="40" y="44" width="2" height="4" /><rect x="38" y="48" width="2" height="4" /><rect x="40" y="52" width="2" height="4" /><rect x="38" y="56" width="2" height="4" />
+        </g>
+        {/* Tentacle bioluminescent nodes */}
+        <g fill="#e090ff">
+          <rect x="6"  y="44" width="2" height="2" />
+          <rect x="15" y="42" width="2" height="2" />
+          <rect x="20" y="48" width="2" height="2" />
+          <rect x="26" y="44" width="2" height="2" />
+          <rect x="34" y="50" width="2" height="2" />
+          <rect x="39" y="44" width="2" height="2" />
+        </g>
+      </svg>
+    </div>
+  );
+}
+
 // ─── Stars ───────────────────────────────────────────────────────────
 function Stars() {
   const stars = useMemo(
@@ -926,10 +1039,11 @@ function CruisingPlanes({ currentKm, topVisibleKm, oceanHeight }) {
   const isVisible = topVisibleKm >= 10 && currentKm <= 14;
   if (!isVisible) return null;
 
+  const PLANE_DURATION = 32; // seconds — faster than clouds
   const planes = [
-    { id: "lead", left: "28%", bottom: altitudeToPixels(10.6) + oceanHeight + 16, width: 92, height: 40, opacity: 0.72 },
-    { id: "main", left: "52%", bottom: altitudeToPixels(10) + oceanHeight + 24, width: 112, height: 48, opacity: 0.92 },
-    { id: "trail", left: "74%", bottom: altitudeToPixels(9.4) + oceanHeight + 20, width: 84, height: 36, opacity: 0.64 },
+    { id: "lead",  leftPct: 28, bottom: altitudeToPixels(10.6) + oceanHeight + 16, width: 92,  height: 40, opacity: 0.72 },
+    { id: "main",  leftPct: 52, bottom: altitudeToPixels(10)   + oceanHeight + 24, width: 112, height: 48, opacity: 0.92 },
+    { id: "trail", leftPct: 74, bottom: altitudeToPixels(9.4)  + oceanHeight + 20, width: 84,  height: 36, opacity: 0.64 },
   ];
 
   return (
@@ -939,14 +1053,15 @@ function CruisingPlanes({ currentKm, topVisibleKm, oceanHeight }) {
           key={plane.id}
           style={{
             position: "absolute",
-            left: plane.left,
+            left: -150,
             bottom: plane.bottom,
             width: plane.width,
             height: plane.height,
-            transform: "translateX(-50%)",
             pointerEvents: "none",
             zIndex: plane.id === "main" ? 3 : 2,
             opacity: plane.opacity,
+            animation: `driftRight ${PLANE_DURATION}s linear infinite`,
+            animationDelay: `${(-(plane.leftPct / 100) * PLANE_DURATION).toFixed(1)}s`,
           }}
         >
           <svg
@@ -1005,32 +1120,37 @@ function TroposphereClouds({ oceanHeight }) {
   const clouds = useMemo(
     () => {
       const random = createSeededRandom(202);
-      return Array.from({ length: 8 }, (_, index) => ({
-        id: index,
-        km: random() * 11 + 0.4,
-        left: 8 + random() * 84,
-        scale: 0.8 + random() * 0.8,
-        opacity: 0.82 + random() * 0.12,
-      }));
+      return Array.from({ length: 8 }, (_, index) => {
+        const km = random() * 11 + 0.4;
+        const left = 8 + random() * 84;
+        const scale = 0.8 + random() * 0.8;
+        const opacity = 0.82 + random() * 0.12;
+        const speed = 0.65 + random() * 0.7; // 0.65–1.35× base speed
+        return { id: index, km, left, scale, opacity, speed };
+      });
     },
     []
   );
 
   return (
     <>
-      {clouds.map((cloud) => (
+      {clouds.map((cloud) => {
+        const duration = Math.round(160 / cloud.speed);
+        const delay = -((cloud.left / 100) * duration);
+        return (
         <div
           key={cloud.id}
           style={{
             position: "absolute",
-            left: `${cloud.left}%`,
+            left: -200,
             bottom: altitudeToPixels(cloud.km) + oceanHeight,
             width: 96 * cloud.scale,
             height: 48 * cloud.scale,
-            transform: "translateX(-50%)",
             opacity: cloud.opacity,
             pointerEvents: "none",
             zIndex: 2,
+            animation: `driftRight ${duration}s linear infinite`,
+            animationDelay: `${delay.toFixed(1)}s`,
           }}
         >
           <svg
@@ -1064,7 +1184,8 @@ function TroposphereClouds({ oceanHeight }) {
             </g>
           </svg>
         </div>
-      ))}
+        );
+      })}
     </>
   );
 }
@@ -1591,6 +1712,9 @@ const StaticAtmosphereScene = memo(function StaticAtmosphereScene({
       <KilimanjaroComparison compact={isCompact} phone={isPhone} oceanHeight={oceanHeight} />
       <EverestComparison compact={isCompact} phone={isPhone} oceanHeight={oceanHeight} />
       <BurjComparison compact={isCompact} phone={isPhone} oceanHeight={oceanHeight} />
+      <PixelJellyfish oceanHeight={oceanHeight} left="44%" bottomFraction={0.55} width={30} height={41} delay="-1.2s" />
+      <PixelJellyfish oceanHeight={oceanHeight} left="68%" bottomFraction={0.62} width={38} height={52} delay="0s" />
+      <PixelJellyfish oceanHeight={oceanHeight} left="82%" bottomFraction={0.48} width={24} height={33} delay="-2.6s" />
       <Stars />
       <PixelUFO oceanHeight={oceanHeight} isPhone={isPhone} hudHeight={hudHeight} />
 
@@ -1874,7 +1998,7 @@ export default function AtmosphereScrolly() {
           </div>
           <div style={{ fontSize: isPhone ? "22px" : "28px", color: "#fff", fontWeight: 600, fontFamily: "'Roboto Mono', monospace", lineHeight: 1.1 }}>
             {currentKm < 1 ? `${(currentKm * 1000).toFixed(0)} m` : `${currentKm.toFixed(1)} km`}
-            <span style={{ fontSize: isPhone ? "13px" : "15px", fontWeight: 400, color: "rgba(255,255,255,0.45)", marginLeft: 7 }}>
+            <span style={{ fontSize: isPhone ? "16px" : "18px", fontWeight: 400, color: "rgba(255,255,255,0.45)", marginLeft: 7 }}>
               {currentKm < 1 ? `(${(currentKm * 3280.84).toFixed(0)} ft)` : `(${(currentKm * 0.621371).toFixed(1)} mi)`}
             </span>
           </div>
@@ -1980,6 +2104,10 @@ export default function AtmosphereScrolly() {
         </div>
       </div>
       <style>{`
+        @keyframes driftRight {
+          from { transform: translateX(0); }
+          to   { transform: translateX(calc(100vw + 300px)); }
+        }
         .reset-button:active {
           background: rgba(255,255,255,0.18) !important;
           border-color: rgba(255,255,255,0.32) !important;
