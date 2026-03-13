@@ -334,7 +334,7 @@ function ChapterOverlay({ chapter, progress, compact }) {
                 fontFamily: "'Roboto Mono', monospace",
                 fontSize: compact ? "16px" : "18px",
                 lineHeight: 1.55,
-                color: "rgba(255, 255, 255, 0.95)",
+                color: "rgba(255,225,160,1)",
                 maxWidth: compact ? "none" : 400,
                 margin: compact ? 0 : "0 auto",
                 textAlign: "left",
@@ -356,7 +356,7 @@ function ChapterOverlay({ chapter, progress, compact }) {
 // ─── Temperature Profile SVG (draggable) ─────────────────────────────
 function TempProfile({ currentKm, showClimate, onDragAltitude, onDragStateChange, compact, fullHeight, topOffset, availableHeight }) {
   const minimalMobileRail = fullHeight;
-  const svgWidth = fullHeight ? 32 : compact ? 54 : 72;
+  const svgWidth = fullHeight ? 32 : compact ? 54 : 86;
   const svgHeight = Math.max(availableHeight, fullHeight ? 320 : compact ? 280 : 420);
   const headerBand = fullHeight ? 0 : 8;
   const padding = fullHeight
@@ -469,7 +469,7 @@ function TempProfile({ currentKm, showClimate, onDragAltitude, onDragStateChange
           y: kmToY(km),
           isChapter: CHAPTER_BREAK_KMS.includes(km),
         };
-      }),
+      }).filter((node) => ![10, 20, 85].includes(node.km)),
     [kmToY]
   );
 
@@ -516,6 +516,18 @@ function TempProfile({ currentKm, showClimate, onDragAltitude, onDragStateChange
         >
           {!minimalMobileRail && (
             <>
+              {CHAPTER_BREAK_KMS.map((km) => (
+                <line
+                  key={`temp-chapter-${km}`}
+                  x1={0}
+                  y1={kmToY(km)}
+                  x2={svgWidth}
+                  y2={kmToY(km)}
+                  stroke="rgba(255,225,160,0.42)"
+                  strokeWidth="1.2"
+                />
+              ))}
+
               <text
                 x={svgWidth / 2}
                 y={headerBand}
@@ -529,37 +541,30 @@ function TempProfile({ currentKm, showClimate, onDragAltitude, onDragStateChange
                 TEMP
               </text>
               <text
-                x={padding.left + 3}
+                x={padding.left + 7}
                 y={svgHeight / 2}
                 fill="rgba(255,255,255,0.34)"
                 fontSize="12"
                 fontFamily="'Roboto Mono', monospace"
                 letterSpacing="0.8"
                 textAnchor="middle"
-                transform={`rotate(-90 ${padding.left + 3} ${svgHeight / 2})`}
+                transform={`rotate(-90 ${padding.left + 7} ${svgHeight / 2})`}
               >
                 COLDER
               </text>
               <text
-                x={svgWidth - padding.right - 3}
+                x={svgWidth - padding.right - 7}
                 y={svgHeight / 2}
                 fill="rgba(255,255,255,0.34)"
                 fontSize="12"
                 fontFamily="'Roboto Mono', monospace"
                 letterSpacing="0.8"
                 textAnchor="middle"
-                transform={`rotate(90 ${svgWidth - padding.right - 3} ${svgHeight / 2})`}
+                transform={`rotate(90 ${svgWidth - padding.right - 7} ${svgHeight / 2})`}
               >
                 WARMER
               </text>
 
-              {boundaries.map((km) => (
-                <line
-                  key={km}
-                  x1={padding.left} y1={kmToY(km)} x2={padding.left + plotW} y2={kmToY(km)}
-                  stroke="rgba(255,255,255,0.22)" strokeWidth="2" strokeDasharray="3,3"
-                />
-              ))}
             </>
           )}
 
@@ -571,6 +576,23 @@ function TempProfile({ currentKm, showClimate, onDragAltitude, onDragStateChange
             height={svgHeight - curY}
             fill="rgba(90, 160, 210, 0.26)"
           />
+
+          {minimalMobileRail &&
+            CHAPTER_BREAK_KMS.map((km) => {
+              const y = kmToY(km);
+              return (
+                <line
+                  key={`mobile-chapter-${km}`}
+                  x1={0}
+                  y1={y}
+                  x2={svgWidth}
+                  y2={y}
+                  stroke="rgba(255,225,160,0.85)"
+                  strokeWidth="1.2"
+                  strokeLinecap="round"
+                />
+              );
+            })}
 
           <path d={pathD} fill="none" stroke="rgba(255,180,100,0.78)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
 
@@ -638,7 +660,7 @@ function AltitudeRuler({ currentKm, onDragAltitude, onDragStateChange, compact, 
   const [isDragging, setIsDragging] = useState(false);
   const rulerTicks = [0, 10, 20, 50, 85, 100, 200, 300, 400, 500];
   const rulerHeight = Math.max(availableHeight, 420); // same floor as TempProfile
-  const rulerWidth = width ?? (compact ? 54 : 72);
+  const rulerWidth = width ?? (compact ? 68 : 90);
   const rulerInset = compact ? 14 : 16;  // bottom inset + tick left anchor
   const trackTopY = 46;                  // matches TempProfile padding.top exactly
   const trackH = rulerHeight - trackTopY - rulerInset; // active track span
@@ -753,6 +775,24 @@ function AltitudeRuler({ currentKm, onDragAltitude, onDragStateChange, compact, 
           }}
         />
 
+        {CHAPTER_BREAK_KMS.map((km) => {
+          const bottomOffset = (km / MAX_ALTITUDE_KM) * trackH + rulerInset;
+          return (
+            <div
+              key={`ruler-chapter-${km}`}
+              style={{
+                position: "absolute",
+                left: 0,
+                right: 0,
+                bottom: bottomOffset,
+                height: 0,
+                borderTop: "1.2px solid rgba(255,225,160,0.42)",
+                pointerEvents: "none",
+              }}
+            />
+          );
+        })}
+
         {graphNodes.map((node) => (
           <div
             key={`ruler-node-${node.km}`}
@@ -797,7 +837,7 @@ function AltitudeRuler({ currentKm, onDragAltitude, onDragStateChange, compact, 
                   whiteSpace: "nowrap",
                 }}
               >
-                {km}
+                {km} km
               </div>
             </div>
           );
@@ -2518,7 +2558,7 @@ export default function AtmosphereScrolly() {
   const isPhone = viewport.width < 680;
   const isCompact = viewport.width < 900;
   const showRuler = !isPhone;
-  const overlayWidth = isPhone ? 0 : 72;
+  const overlayWidth = isPhone ? 0 : 90;
   const overlayGap = isPhone ? 0 : 20;
   const contentLeft = isPhone ? 0 : overlayWidth + overlayGap;
   const contentRight = showRuler ? overlayWidth + overlayGap : 0;
