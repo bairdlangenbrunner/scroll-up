@@ -1,8 +1,4 @@
 import { memo, useState, useEffect, useRef, useMemo, useCallback } from "react";
-import {
-  CHAPTER_EXIT_EPSILON_KM,
-  findChapterCrossing,
-} from "./chapterScroll";
 
 // ─── Scale & Constants ───────────────────────────────────────────────
 const MAX_ALTITUDE_KM = 550;
@@ -117,7 +113,7 @@ const CHAPTER_BREAKS = {
   25: {
     lines: [
       "At these altitudes, ozone is good. It absorbs ultraviolet radiation from the sun, acting like sunscreen for life on Earth.",
-      "The Montreal Protocol phased out ozone-depleting chemicals once common in aerosol cans and refrigeration, and the ozone layer has been gradually recovering.",
+      "The 1987 Montreal Protocol phased out ozone-depleting chemicals once common in aerosol cans and refrigeration, and the ozone layer has been gradually recovering.",
       "It remains a rare example of coordinated global action reducing environmental harm before the worst outcomes became permanent.",
     ],
   },
@@ -272,58 +268,32 @@ function getLandmarkOffset(km, compact, phone) {
   return 0;
 }
 
-// ─── Chapter Overlay (scroll-driven bottom-to-top text) ──────────────
-// Each line scrolls from below the viewport to above it.
-// `progress` is a continuous 0→1 value driven by wheel input.
-// Each line owns a slice of the progress range.
+// ─── Chapter Overlay (scroll-driven, no pause) ───────────────────────
+// Progress 0→1 is derived directly from currentKm so the background
+// never stops; lines scroll bottom-to-top as you pass through.
 function ChapterOverlay({ chapter, progress, compact }) {
   if (!chapter) return null;
 
   const lineCount = chapter.lines.length;
   const mobileChapterLeft = `calc(${MOBILE_TEMP_OVERLAY_WIDTH}px + (100vw - ${MOBILE_TEMP_OVERLAY_WIDTH}px) * 0.05)`;
   const mobileChapterRight = `calc((100vw - ${MOBILE_TEMP_OVERLAY_WIDTH}px) * 0.05)`;
-  // Each line gets an equal share of progress, with overlap for smooth transitions
   const sliceSize = 1 / lineCount;
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 50,
-        overflow: "hidden",
-        pointerEvents: "none",
-        opacity: 1,
-      }}
-    >
-      {/* Each line scrolls continuously top → bottom with overlap between lines */}
-      {/* First line fades in at center; subsequent lines scroll through */}
+    <div style={{ position: "fixed", inset: 0, zIndex: 50, overflow: "hidden", pointerEvents: "none" }}>
       {chapter.lines.map((line, i) => {
         const overlap = 0.3;
         const effectiveSlice = sliceSize + overlap * sliceSize;
         const lineStart = i * sliceSize - overlap * sliceSize * 0.5;
-
         const t = Math.max(0, Math.min(1, (progress - lineStart) / effectiveSlice));
         const wasPassed = t >= 0.999;
 
-        let yPercent;
+        const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+        const yPercent = -15 + eased * 130;
         let opacity = 0;
-
-        {
-          // All lines use the same continuous scroll top → bottom behavior.
-          const eased = t < 0.5
-            ? 2 * t * t
-            : 1 - Math.pow(-2 * t + 2, 2) / 2;
-          yPercent = -15 + eased * 130;
-
-          if (t > 0 && t < 0.15) {
-            opacity = t / 0.15;
-          } else if (t >= 0.15 && t <= 0.85) {
-            opacity = 1;
-          } else if (t > 0.85 && t < 1) {
-            opacity = (1 - t) / 0.15;
-          }
-        }
+        if (t > 0 && t < 0.15) opacity = t / 0.15;
+        else if (t >= 0.15 && t <= 0.85) opacity = 1;
+        else if (t > 0.85 && t < 1) opacity = (1 - t) / 0.15;
 
         return (
           <div
@@ -336,7 +306,7 @@ function ChapterOverlay({ chapter, progress, compact }) {
               transform: "translateY(-50%)",
               textAlign: compact ? "left" : "center",
               padding: compact ? 0 : "0 40px",
-              opacity: opacity,
+              opacity,
               zIndex: t > 0 && t < 1 ? 2 : wasPassed ? 0 : 1,
               willChange: "transform, opacity",
             }}
@@ -1638,7 +1608,6 @@ export default function AtmosphereScrolly() {
   });
   const [hudHeight, setHudHeight] = useState(88);
   const [currentKm, setCurrentKm] = useState(0);
-  const [chapterPause, setChapterPause] = useState(null);
   const [, setIsTempDragging] = useState(false);
   const [, setIsRulerDragging] = useState(false);
   const hudRef = useRef(null);
@@ -1712,71 +1681,12 @@ export default function AtmosphereScrolly() {
     setCurrentKm(Math.max(0, Math.min(MAX_ALTITUDE_KM, nextKm)));
   }, []);
 
-  const releaseChapterPause = useCallback((chapterKm, direction, resumeDirection) => {
-    setChapterPause(null);
-    if (resumeDirection === "forward") {
-      setAltitude(
-        direction === "up"
-          ? chapterKm + CHAPTER_EXIT_EPSILON_KM
-          : chapterKm - CHAPTER_EXIT_EPSILON_KM
-      );
-      return;
-    }
-
-    setAltitude(
-      direction === "up"
-        ? chapterKm - CHAPTER_EXIT_EPSILON_KM
-        : chapterKm + CHAPTER_EXIT_EPSILON_KM
-    );
-  }, [setAltitude]);
-
   const applyScrollDelta = useCallback((deltaPx) => {
     if (deltaPx === 0) return;
-
-    if (chapterPause) {
-      const totalPausePx = chapterPause.chapter.lines.length * 300;
-      const forwardPx = chapterPause.direction === "up" ? -deltaPx : deltaPx;
-      const progressDelta = forwardPx / totalPausePx;
-      const nextProgress = chapterPause.progress + progressDelta;
-
-      if (nextProgress >= 1) {
-        releaseChapterPause(chapterPause.chapterKm, chapterPause.direction, "forward");
-        return;
-      }
-
-      if (nextProgress <= 0) {
-        releaseChapterPause(chapterPause.chapterKm, chapterPause.direction, "backward");
-        return;
-      }
-
-      setChapterPause((prev) =>
-        prev
-          ? {
-              ...prev,
-              progress: Math.max(0, Math.min(1, nextProgress)),
-            }
-          : prev
-      );
-      return;
-    }
-
-    setCurrentKm((prev) => {
-      const next = Math.max(0, Math.min(MAX_ALTITUDE_KM, prev - deltaPx / PX_PER_KM));
-      const crossing = findChapterCrossing(CHAPTER_BREAKS, prev, next);
-
-      if (crossing) {
-        setChapterPause({
-          chapterKm: crossing.chapterKm,
-          chapter: crossing.chapter,
-          direction: crossing.direction,
-          progress: crossing.direction === "up" ? 0 : 1,
-        });
-        return crossing.chapterKm;
-      }
-
-      return next;
-    });
-  }, [chapterPause, releaseChapterPause]);
+    setCurrentKm((prev) =>
+      Math.max(0, Math.min(MAX_ALTITUDE_KM, prev - deltaPx / PX_PER_KM))
+    );
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return undefined;
@@ -1795,13 +1705,11 @@ export default function AtmosphereScrolly() {
       if (event.key === "PageDown" || event.key === " ") deltaPx = viewport.height * 0.75;
       if (event.key === "Home") {
         event.preventDefault();
-        setChapterPause(null);
         setAltitude(0);
         return;
       }
       if (event.key === "End") {
         event.preventDefault();
-        setChapterPause(null);
         setAltitude(MAX_ALTITUDE_KM);
         return;
       }
@@ -1896,7 +1804,6 @@ export default function AtmosphereScrolly() {
   const profileAvailableHeight = isPhone ? Math.max(viewport.height - hudHeight - 16, 320) : desktopOverlayHeight;
 
   const scrollToAltitude = useCallback((km) => {
-    setChapterPause(null);
     setAltitude(km);
   }, [setAltitude]);
 
@@ -1919,28 +1826,26 @@ export default function AtmosphereScrolly() {
     MAX_ALTITUDE_KM,
     currentKm + pixelsToAltitude(visibleSceneHeight / 2)
   );
-  const activeChapter = chapterPause?.chapter ?? null;
-  const chapterProgress = chapterPause?.progress ?? 0;
   const behindChapterStyle = {};
+
+  // Derive active chapter and progress purely from scroll position — no pause.
+  // Each chapter occupies (lines.length * 300 px) worth of scroll above its altitude.
+  let activeChapter = null;
+  let chapterProgress = 0;
+  for (const [kmStr, chapter] of Object.entries(CHAPTER_BREAKS)) {
+    const km = Number(kmStr);
+    const rangeKm = chapter.lines.length * 300 / PX_PER_KM;
+    if (currentKm >= km && currentKm < km + rangeKm) {
+      activeChapter = chapter;
+      chapterProgress = (currentKm - km) / rangeKm;
+      break;
+    }
+  }
 
   return (
     <>
-      <div
-        style={{
-          position: "fixed",
-          inset: 0,
-          zIndex: 45,
-          background: "rgba(0,0,0,0.5)",
-          opacity: activeChapter ? 1 : 0,
-          pointerEvents: "none",
-        }}
-      />
       {activeChapter && (
-        <ChapterOverlay
-          chapter={activeChapter}
-          progress={chapterProgress}
-          compact={isPhone}
-        />
+        <ChapterOverlay chapter={activeChapter} progress={chapterProgress} compact={isPhone} />
       )}
       <div
         ref={hudRef}
@@ -1969,6 +1874,9 @@ export default function AtmosphereScrolly() {
           </div>
           <div style={{ fontSize: isPhone ? "22px" : "28px", color: "#fff", fontWeight: 600, fontFamily: "'Roboto Mono', monospace", lineHeight: 1.1 }}>
             {currentKm < 1 ? `${(currentKm * 1000).toFixed(0)} m` : `${currentKm.toFixed(1)} km`}
+            <span style={{ fontSize: isPhone ? "13px" : "15px", fontWeight: 400, color: "rgba(255,255,255,0.45)", marginLeft: 7 }}>
+              {currentKm < 1 ? `(${(currentKm * 3280.84).toFixed(0)} ft)` : `(${(currentKm * 0.621371).toFixed(1)} mi)`}
+            </span>
           </div>
         </div>
         <div style={{ textAlign: isPhone ? "left" : "center", flex: isPhone ? "1 1 100%" : "0 1 auto", order: isPhone ? 3 : "initial", alignSelf: isPhone ? "flex-start" : "auto" }}>
