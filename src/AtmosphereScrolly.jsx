@@ -256,29 +256,11 @@ function getLandmarkOffset(km, compact, phone) {
   return 0;
 }
 
-function getChapterLineStates(chapter, progress) {
-  if (!chapter) return [];
-
-  const lineCount = chapter.lines.length;
-  const sliceSize = 1 / lineCount;
-  const overlap = 0.3;
-
-  return chapter.lines.map((_, i) => {
-    const effectiveSlice = sliceSize + overlap * sliceSize;
-    const lineStart = i * sliceSize - overlap * sliceSize * 0.5;
-    const t = Math.max(0, Math.min(1, (progress - lineStart) / effectiveSlice));
-    return {
-      progress: t,
-      passed: t >= 0.999,
-    };
-  });
-}
-
 // ─── Chapter Overlay (scroll-driven bottom-to-top text) ──────────────
 // Each line scrolls from below the viewport to above it.
 // `progress` is a continuous 0→1 value driven by wheel input.
 // Each line owns a slice of the progress range.
-function ChapterOverlay({ chapter, progress, lineProgress, passedLines, fadingOut, compact }) {
+function ChapterOverlay({ chapter, progress, fadingOut, compact }) {
   if (!chapter) return null;
 
   const lineCount = chapter.lines.length;
@@ -306,9 +288,8 @@ function ChapterOverlay({ chapter, progress, lineProgress, passedLines, fadingOu
         const effectiveSlice = sliceSize + overlap * sliceSize;
         const lineStart = i * sliceSize - overlap * sliceSize * 0.5;
 
-        const derivedT = Math.max(0, Math.min(1, (progress - lineStart) / effectiveSlice));
-        const t = lineProgress[i] ?? derivedT;
-        const wasPassed = passedLines[i];
+        const t = Math.max(0, Math.min(1, (progress - lineStart) / effectiveSlice));
+        const wasPassed = t >= 0.999;
 
         let yPercent;
         let opacity = 0;
@@ -1246,12 +1227,9 @@ export default function AtmosphereScrolly() {
   // ─── Chapter break state ───
   const [activeChapterKm, setActiveChapterKm] = useState(null);
   const [chapterProgress, setChapterProgress] = useState(0); // 0→1 continuous
-  const [chapterLineProgress, setChapterLineProgress] = useState([]);
-  const [chapterPassedLines, setChapterPassedLines] = useState([]);
   const [chapterFadingOut, setChapterFadingOut] = useState(false);
   const [chapterDirection, setChapterDirection] = useState("up"); // "up" or "down"
   const prevCenterKm = useRef(0);
-  const prevChapterProgress = useRef(null);
   const chapterActivatedAt = useRef(0);
   const hasUserNavigated = useRef(false);
   const chapterCooldown = useRef(false); // suppress snap right after chapter closes
@@ -1319,13 +1297,10 @@ export default function AtmosphereScrolly() {
   const clearChapterState = useCallback(() => {
     setActiveChapterKm(null);
     setChapterProgress(0);
-    setChapterLineProgress([]);
-    setChapterPassedLines([]);
     setChapterFadingOut(false);
     setChapterDirection("up");
     chapterCooldown.current = false;
     frozenScrollTop.current = null;
-    prevChapterProgress.current = null;
     chapterActivatedAt.current = 0;
     prevCenterKm.current = 0;
     if (containerRef.current) containerRef.current.style.touchAction = "";
@@ -1412,13 +1387,6 @@ export default function AtmosphereScrolly() {
       setActiveChapterKm(bKm);
       setChapterDirection(direction);
       setChapterProgress(direction === "up" ? 0 : 1);
-      const initialLineStates = getChapterLineStates(
-        CHAPTER_BREAKS[bKm],
-        direction === "up" ? 0 : 1
-      );
-      setChapterLineProgress(initialLineStates.map((state) => state.progress));
-      setChapterPassedLines(initialLineStates.map((state) => state.passed));
-      prevChapterProgress.current = direction === "up" ? 0 : 1;
       chapterActivatedAt.current =
         typeof performance !== "undefined" ? performance.now() : Date.now();
       setChapterFadingOut(false);
@@ -1443,29 +1411,6 @@ export default function AtmosphereScrolly() {
     chapterCooldown.current = false;
     frozenScrollTop.current = null;
   }, [isScaleDragging, centerKm]);
-
-  useEffect(() => {
-    if (!activeChapter) {
-      setChapterLineProgress([]);
-      setChapterPassedLines([]);
-      prevChapterProgress.current = null;
-      return;
-    }
-
-    const lineStates = getChapterLineStates(activeChapter, chapterProgress);
-    const isReversing =
-      prevChapterProgress.current !== null && chapterProgress < prevChapterProgress.current;
-
-    setChapterLineProgress(lineStates.map((state) => state.progress));
-    setChapterPassedLines((prev) =>
-      lineStates.map((state, index) => {
-        if (state.passed) return true;
-        if (isReversing && state.progress <= 0.001) return false;
-        return prev[index] ?? false;
-      })
-    );
-    prevChapterProgress.current = chapterProgress;
-  }, [activeChapter, chapterProgress]);
 
   // ─── Handle wheel events during chapter overlay (continuous, direction-aware) ───
   useEffect(() => {
@@ -1697,8 +1642,6 @@ export default function AtmosphereScrolly() {
         <ChapterOverlay
           chapter={activeChapter}
           progress={chapterProgress}
-          lineProgress={chapterLineProgress}
-          passedLines={chapterPassedLines}
           fadingOut={chapterFadingOut}
           compact={isPhone}
         />
