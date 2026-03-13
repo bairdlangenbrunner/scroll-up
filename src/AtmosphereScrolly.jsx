@@ -151,6 +151,16 @@ const CHAPTER_BREAKS = {
       "And yet, the atmosphere doesn't truly end. It just fades out exponentially.",
     ],
   },
+  250: {
+    lines: [
+      "This high up, temperature stops meaning what it does on Earth.",
+      "Temperature is the measure of the average kinetic energy of gas molecules. The gas here can have a very high temperature because the few molecules that remain are moving extremely fast, since they've absorbed lots of energy from the sun.",
+      "But there are so few of them that they wouldn't be able to transfer any meaningful amount of heat to your body or spacesuit by collision. (That's also why there's no sound in space; there's not enough air to carry sound waves.)",
+      "If you were out here without protection, you wouldn't feel hot from the surrounding gas the way you would in hot air on Earth. Instead, your body would gain or lose heat mostly through radiation, largely based on how exposed you were to sunlight.",
+      "For an astronaut in the vacuum of space, direct sunlight can warm the outside of a spacesuit to about 121°C (250°F), while deep shade can cool it down to about −157°C (−250°F).",
+      "That's why spacesuits use reflective outer layers, heavy insulation, and active cooling systems to manage enormous swings between sun and shade.",
+    ],
+  },
   500: {
     lines: [
       "You've reached the thermopause — the top of the thermosphere, around 500 km up.",
@@ -646,10 +656,11 @@ function AltitudeRuler({ currentKm, onDragAltitude, onDragStateChange, compact, 
     if (!rulerRef.current) return null;
     const rect = rulerRef.current.getBoundingClientRect();
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    const localY = clientY - rect.top;
-    const pctFromBottom = 1 - localY / rect.height;
+    const localTrackY = clientY - rect.top - trackTopY;
+    const clampedTrackY = Math.max(0, Math.min(trackH, localTrackY));
+    const pctFromBottom = 1 - clampedTrackY / trackH;
     return Math.max(0, Math.min(MAX_ALTITUDE_KM, pctFromBottom * MAX_ALTITUDE_KM));
-  }, []);
+  }, [trackH, trackTopY]);
 
   useEffect(() => {
     if (!isDragging) return;
@@ -1559,68 +1570,320 @@ function NoctilucentClouds({ oceanHeight, isPhone, desktopLabelInset, contentRig
 //   upper half:  magenta → violet → purple-indigo
 function AuroraBackground({ oceanHeight, viewportHeight }) {
   const centerPx = altitudeToPixels(300) + oceanHeight;
-  const redCenterPx = altitudeToPixels(325) + oceanHeight;
   const half = viewportHeight / 2;
   const auroraStartPx = centerPx - half;
-  const auroraRepeatCount = Math.max(
-    1,
-    Math.ceil((redCenterPx - auroraStartPx) / viewportHeight)
-  );
-  const auroraBands = Array.from({ length: auroraRepeatCount }, (_, index) => index);
+  const crownBottomPx = altitudeToPixels(325) + oceanHeight - half;
+  const crownHeight = viewportHeight * 2.1;
+  const auroraHeight = Math.max(viewportHeight * 2, crownBottomPx - auroraStartPx + crownHeight);
   return (
     <>
-      {/* Repeat the auroral peak palette every viewport until the 325 km crown */}
-      {auroraBands.map((index) => (
-        <div
-          key={`aurora-band-${index}`}
-          style={{
-            position: "absolute",
-            left: 0,
-            right: 0,
-            bottom: auroraStartPx + index * viewportHeight,
-            height: viewportHeight,
-            background: `linear-gradient(to top,
-              rgba(3, 20, 8, 0) 0%,
-              rgba(4, 26, 10, 0.72) 7%,
-              rgba(6, 38, 14, 0.88) 18%,
-              rgba(8, 34, 12, 0.92) 28%,
-              rgba(20, 24, 8, 0.94) 38%,
-              rgba(30, 8, 10, 0.95) 45%,
-              rgba(36, 4, 16, 0.97) 50%,
-              rgba(40, 4, 28, 0.95) 58%,
-              rgba(36, 6, 46, 0.92) 67%,
-              rgba(28, 8, 56, 0.88) 76%,
-              rgba(16, 4, 38, 0.74) 90%,
-              rgba(8, 2, 20, 0) 100%
-            )`,
-            pointerEvents: "none",
-            zIndex: -1,
-          }}
-        />
-      ))}
-      {/* Red aurora crown ombré centered at 325 km */}
+      <style>{`
+        @keyframes aurora-wave {
+          0% { transform: translateX(-6%) skewX(-3deg) scaleY(0.98); }
+          50% { transform: translateX(6%) skewX(3deg) scaleY(1.02); }
+          100% { transform: translateX(-6%) skewX(-3deg) scaleY(0.98); }
+        }
+
+        @keyframes aurora-shimmer {
+          0% { opacity: 0.2; filter: brightness(0.95) saturate(1); }
+          50% { opacity: 0.42; filter: brightness(1.15) saturate(1.18); }
+          100% { opacity: 0.2; filter: brightness(0.95) saturate(1); }
+        }
+
+        @keyframes aurora-scroll {
+          0% { background-position: center 0px; }
+          100% { background-position: center ${viewportHeight}px; }
+        }
+
+        @keyframes aurora-swirl {
+          0% { transform: translateX(-4%) translateY(0%) rotate(-2deg) scale(1, 0.98); }
+          50% { transform: translateX(5%) translateY(-2%) rotate(2deg) scale(1.04, 1.02); }
+          100% { transform: translateX(-4%) translateY(0%) rotate(-2deg) scale(1, 0.98); }
+        }
+
+        @keyframes aurora-undulate {
+          0% { transform: translateX(-2%) translateY(1%) rotate(-1deg) scale(1.01, 0.99); }
+          25% { transform: translateX(1.5%) translateY(-1.5%) rotate(0.8deg) scale(1, 1.02); }
+          50% { transform: translateX(3.5%) translateY(0%) rotate(1.4deg) scale(1.03, 0.98); }
+          75% { transform: translateX(-1%) translateY(1.5%) rotate(-0.6deg) scale(1.01, 1.02); }
+          100% { transform: translateX(-2%) translateY(1%) rotate(-1deg) scale(1.01, 0.99); }
+        }
+      `}</style>
       <div
         style={{
           position: "absolute",
           left: 0,
           right: 0,
-          bottom: redCenterPx - half,
-          height: viewportHeight,
-          background: `linear-gradient(to top,
-            rgba(80, 4, 12, 0) 0%,
-            rgba(100, 6, 16, 0.55) 10%,
-            rgba(130, 8, 22, 0.78) 22%,
-            rgba(155, 10, 28, 0.88) 35%,
-            rgba(160, 12, 30, 0.93) 50%,
-            rgba(140, 10, 40, 0.88) 62%,
-            rgba(110, 8, 50, 0.76) 74%,
-            rgba(70, 6, 40, 0.55) 87%,
-            rgba(40, 2, 20, 0) 100%
+          bottom: auroraStartPx,
+          height: auroraHeight,
+          overflow: "hidden",
+          background: `radial-gradient(120% 58% at 18% 84%,
+            rgba(80, 255, 120, 0.22) 0%,
+            rgba(36, 120, 54, 0.16) 28%,
+            rgba(8, 22, 12, 0) 62%
+          ),
+          radial-gradient(92% 44% at 72% 78%,
+            rgba(150, 255, 160, 0.18) 0%,
+            rgba(40, 118, 70, 0.14) 30%,
+            rgba(10, 24, 16, 0) 64%
+          ),
+          radial-gradient(110% 54% at 34% 50%,
+            rgba(212, 126, 255, 0.22) 0%,
+            rgba(88, 42, 144, 0.16) 26%,
+            rgba(20, 8, 34, 0) 62%
+          ),
+          radial-gradient(96% 34% at 52% 38%,
+            rgba(172, 42, 64, 0.12) 0%,
+            rgba(98, 18, 34, 0.08) 24%,
+            rgba(24, 6, 14, 0) 54%
+          ),
+          radial-gradient(96% 42% at 78% 42%,
+            rgba(124, 232, 255, 0.14) 0%,
+            rgba(32, 92, 110, 0.1) 24%,
+            rgba(10, 18, 28, 0) 56%
+          ),
+          radial-gradient(108% 48% at 56% 18%,
+            rgba(172, 120, 255, 0.2) 0%,
+            rgba(62, 28, 118, 0.15) 28%,
+            rgba(18, 8, 32, 0) 60%
+          ),
+          linear-gradient(to top,
+            rgba(3, 20, 8, 0) 0%,
+            rgba(6, 22, 10, 0.52) 12%,
+            rgba(10, 18, 14, 0.7) 28%,
+            rgba(18, 12, 24, 0.78) 46%,
+            rgba(28, 10, 36, 0.82) 66%,
+            rgba(14, 6, 24, 0.56) 86%,
+            rgba(8, 2, 20, 0) 100%
           )`,
+          maskImage: "linear-gradient(to top, transparent 0%, black 12%, black 88%, transparent 100%)",
+          WebkitMaskImage: "linear-gradient(to top, transparent 0%, black 12%, black 88%, transparent 100%)",
           pointerEvents: "none",
           zIndex: -1,
         }}
-      />
+      >
+        <div
+          style={{
+            position: "absolute",
+            inset: "-4% -12%",
+            background: `radial-gradient(88% 34% at 18% 16%,
+              rgba(140, 255, 150, 0.18) 0%,
+              rgba(80, 180, 90, 0.1) 30%,
+              rgba(140, 255, 150, 0) 56%
+            ),
+            radial-gradient(72% 28% at 68% 22%,
+              rgba(210, 140, 255, 0.16) 0%,
+              rgba(100, 70, 180, 0.12) 34%,
+              rgba(210, 140, 255, 0) 60%
+            ),
+            radial-gradient(94% 30% at 42% 54%,
+              rgba(120, 255, 110, 0.18) 0%,
+              rgba(50, 120, 60, 0.1) 32%,
+              rgba(120, 255, 110, 0) 58%
+            ),
+            radial-gradient(104% 34% at 22% 86%,
+              rgba(120, 255, 110, 0.12) 0%,
+              rgba(120, 255, 110, 0.05) 26%,
+              rgba(120, 255, 110, 0) 54%
+            ),
+            radial-gradient(84% 24% at 58% 48%,
+              rgba(186, 52, 82, 0.1) 0%,
+              rgba(186, 52, 82, 0.04) 22%,
+              rgba(186, 52, 82, 0) 48%
+            ),
+            radial-gradient(88% 28% at 82% 68%,
+              rgba(230, 120, 255, 0.16) 0%,
+              rgba(230, 120, 255, 0.06) 24%,
+              rgba(230, 120, 255, 0) 52%
+            )`,
+            mixBlendMode: "screen",
+            opacity: 0.34,
+            animation: "aurora-swirl 18s ease-in-out infinite, aurora-shimmer 5.2s ease-in-out infinite",
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            inset: "-10% -18%",
+            background: `radial-gradient(120% 20% at 18% 24%,
+              rgba(120, 255, 140, 0.12) 0%,
+              rgba(120, 255, 140, 0.05) 22%,
+              rgba(120, 255, 140, 0) 46%
+            ),
+            radial-gradient(110% 18% at 72% 34%,
+              rgba(210, 120, 255, 0.12) 0%,
+              rgba(210, 120, 255, 0.05) 24%,
+              rgba(210, 120, 255, 0) 48%
+            ),
+            radial-gradient(130% 22% at 42% 68%,
+              rgba(120, 255, 190, 0.1) 0%,
+              rgba(120, 255, 190, 0.04) 24%,
+              rgba(120, 255, 190, 0) 50%
+            )`,
+            mixBlendMode: "screen",
+            opacity: 0.16,
+            filter: "blur(16px)",
+            animation: "aurora-undulate 26s ease-in-out infinite, aurora-shimmer 7.8s ease-in-out infinite",
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            inset: "-3% -10%",
+            background: `radial-gradient(66% 22% at 30% 34%,
+              rgba(255, 255, 255, 0.12) 0%,
+              rgba(255, 255, 255, 0.04) 24%,
+              rgba(255, 255, 255, 0) 50%
+            ),
+            radial-gradient(58% 18% at 76% 48%,
+              rgba(180, 120, 255, 0.16) 0%,
+              rgba(180, 120, 255, 0.06) 28%,
+              rgba(180, 120, 255, 0) 54%
+            ),
+            radial-gradient(74% 20% at 44% 78%,
+              rgba(120, 255, 190, 0.12) 0%,
+              rgba(120, 255, 190, 0.04) 26%,
+              rgba(120, 255, 190, 0) 52%
+            )`,
+            mixBlendMode: "screen",
+            opacity: 0.22,
+            animation: "aurora-swirl 24s ease-in-out infinite reverse, aurora-shimmer 6.4s ease-in-out infinite",
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            inset: "-8% -16%",
+            background: `radial-gradient(84% 20% at 16% 62%,
+              rgba(70, 220, 120, 0.12) 0%,
+              rgba(70, 220, 120, 0.04) 24%,
+              rgba(70, 220, 120, 0) 48%
+            ),
+            radial-gradient(76% 18% at 62% 70%,
+              rgba(220, 130, 255, 0.12) 0%,
+              rgba(220, 130, 255, 0.04) 24%,
+              rgba(220, 130, 255, 0) 48%
+            ),
+            radial-gradient(68% 16% at 84% 26%,
+              rgba(255, 255, 255, 0.08) 0%,
+              rgba(255, 255, 255, 0.03) 22%,
+              rgba(255, 255, 255, 0) 46%
+            )`,
+            mixBlendMode: "screen",
+            opacity: 0.18,
+            animation: "aurora-swirl 28s ease-in-out infinite, aurora-shimmer 8.2s ease-in-out infinite",
+          }}
+        />
+      </div>
+      <div
+        style={{
+          position: "absolute",
+          left: 0,
+          right: 0,
+          bottom: crownBottomPx,
+          height: crownHeight,
+          overflow: "hidden",
+          background: `linear-gradient(to top,
+            rgba(80, 4, 12, 0) 0%,
+            rgba(88, 5, 14, 0.08) 16%,
+            rgba(100, 6, 16, 0.22) 28%,
+            rgba(130, 8, 22, 0.46) 42%,
+            rgba(155, 10, 28, 0.72) 56%,
+            rgba(164, 14, 34, 0.9) 66%,
+            rgba(166, 16, 38, 0.94) 74%,
+            rgba(154, 14, 42, 0.9) 80%,
+            rgba(132, 12, 46, 0.76) 87%,
+            rgba(102, 9, 44, 0.5) 93%,
+            rgba(40, 2, 20, 0) 100%
+          )`,
+          maskImage: "linear-gradient(to top, transparent 0%, black 12%, black 72%, rgba(0,0,0,0.6) 86%, transparent 100%)",
+          WebkitMaskImage: "linear-gradient(to top, transparent 0%, black 12%, black 72%, rgba(0,0,0,0.6) 86%, transparent 100%)",
+          pointerEvents: "none",
+          zIndex: -1,
+        }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            inset: "-4% -12%",
+            background: `radial-gradient(90% 42% at 14% 24%,
+                rgba(255, 165, 210, 0.24) 0%,
+                rgba(170, 55, 95, 0.14) 32%,
+                rgba(255, 120, 140, 0) 58%
+              ),
+              radial-gradient(72% 34% at 64% 18%,
+                rgba(255, 150, 190, 0.18) 0%,
+                rgba(130, 40, 70, 0.14) 38%,
+                rgba(255, 120, 140, 0) 64%
+              ),
+              radial-gradient(84% 30% at 38% 58%,
+                rgba(255, 170, 220, 0.24) 0%,
+                rgba(145, 48, 84, 0.16) 36%,
+                rgba(255, 120, 140, 0) 60%
+              ),
+              radial-gradient(68% 26% at 78% 72%,
+                rgba(255, 135, 175, 0.18) 0%,
+                rgba(120, 38, 66, 0.14) 40%,
+                rgba(255, 120, 140, 0) 66%
+              ),
+              repeating-linear-gradient(
+                108deg,
+                rgba(255, 120, 140, 0) 0%,
+                rgba(255, 120, 140, 0.08) 5%,
+                rgba(255, 165, 210, 0.18) 11%,
+                rgba(130, 40, 70, 0.12) 17%,
+                rgba(255, 120, 140, 0) 25%
+              )`,
+            mixBlendMode: "screen",
+            opacity: 0.32,
+            animation: "aurora-swirl 17s ease-in-out infinite, aurora-shimmer 5.6s ease-in-out infinite",
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            bottom: 0,
+            height: "42%",
+            background: `linear-gradient(to top,
+              rgba(170, 32, 54, 0) 0%,
+              rgba(170, 32, 54, 0.08) 28%,
+              rgba(196, 48, 74, 0.14) 52%,
+              rgba(210, 64, 96, 0.18) 74%,
+              rgba(210, 64, 96, 0) 100%
+            )`,
+            mixBlendMode: "screen",
+            opacity: 0.72,
+            filter: "blur(18px)",
+            pointerEvents: "none",
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            inset: "-8% -16%",
+            background: `radial-gradient(62% 18% at 24% 34%,
+                rgba(255, 200, 235, 0.18) 0%,
+                rgba(255, 200, 235, 0.08) 24%,
+                rgba(255, 200, 235, 0) 52%
+              ),
+              radial-gradient(58% 20% at 72% 46%,
+                rgba(255, 175, 220, 0.16) 0%,
+                rgba(255, 175, 220, 0.06) 28%,
+                rgba(255, 175, 220, 0) 56%
+              ),
+              radial-gradient(64% 16% at 46% 78%,
+                rgba(255, 145, 190, 0.14) 0%,
+                rgba(255, 145, 190, 0.05) 24%,
+                rgba(255, 145, 190, 0) 54%
+              )`,
+            mixBlendMode: "screen",
+            opacity: 0.24,
+            animation: "aurora-swirl 22s ease-in-out infinite reverse, aurora-shimmer 7.4s ease-in-out infinite",
+          }}
+        />
+      </div>
     </>
   );
 }
