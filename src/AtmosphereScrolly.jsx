@@ -94,7 +94,7 @@ const landmarks = [
 // ─── Chapter Breaks ──────────────────────────────────────────────────
 // Each boundary has an array of lines that scroll through one at a time.
 const CHAPTER_BREAKS = {
-  2: {
+  5: {
     lines: [
       "Welcome to the troposphere. This is the lowest layer (the first 10–12 km) of the atmosphere.",
       "As you climb up, temperature decreases, so warmer, less dense air sits under colder, denser air. This leads to convection, like a lava lamp.",
@@ -1328,6 +1328,7 @@ export default function AtmosphereScrolly() {
     prevChapterProgress.current = null;
     chapterActivatedAt.current = 0;
     prevCenterKm.current = 0;
+    if (containerRef.current) containerRef.current.style.touchAction = "";
   }, []);
 
   // Called by TempProfile when user drags the dot
@@ -1406,6 +1407,7 @@ export default function AtmosphereScrolly() {
         const boundaryScrollTop = el.scrollHeight - el.clientHeight - (altitudeToPixels(bKm) + oceanHeight) + el.clientHeight / 2;
         el.scrollTop = boundaryScrollTop;
         frozenScrollTop.current = boundaryScrollTop;
+        el.style.touchAction = "none"; // prevent native scroll from fighting the JS freeze
       }
       setActiveChapterKm(bKm);
       setChapterDirection(direction);
@@ -1486,6 +1488,7 @@ export default function AtmosphereScrolly() {
       if (containerRef.current && frozenScrollTop.current !== null) {
         containerRef.current.scrollTop =
           frozenScrollTop.current + (chapterDirection === "up" ? -80 : 80);
+        containerRef.current.style.touchAction = ""; // re-enable native scroll
       }
       frozenScrollTop.current = null;
       chapterActivatedAt.current = 0;
@@ -1506,8 +1509,10 @@ export default function AtmosphereScrolly() {
         (chapterDirection === "up" && rawDelta < 0) ||
         (chapterDirection === "down" && rawDelta > 0);
 
-      // Ignore residual momentum from the scroll that triggered the chapter.
-      if (activationAge < 100 && enteredForward) {
+      // Ignore residual wheel momentum from the scroll that triggered the chapter.
+      // Skip this guard for touch — touch events only fire while a finger is moving,
+      // so there's no equivalent momentum to eat.
+      if (activationAge < 100 && enteredForward && mode !== "touch") {
         return;
       }
 
@@ -1558,8 +1563,11 @@ export default function AtmosphereScrolly() {
       advanceChapter(e.deltaY, "wheel");
     };
 
+    let lastTouchDelta = 0;
+
     const handleTouchStart = (e) => {
       touchStartY.current = e.touches[0]?.clientY ?? null;
+      lastTouchDelta = 0;
     };
 
     const handleTouchMove = (e) => {
@@ -1567,20 +1575,21 @@ export default function AtmosphereScrolly() {
       if (touchStartY.current === null || nextY == null) return;
       e.preventDefault();
       e.stopPropagation();
-      // Touch movement is inverted relative to wheel deltaY:
-      // swiping up decreases clientY but should behave like positive wheel input.
+      // Swiping up decreases clientY — invert so upward swipe = positive advance.
       const delta = touchStartY.current - nextY;
       touchStartY.current = nextY;
-      const magnitude = Math.abs(delta);
-      const adjustedDelta =
-        Math.sign(delta) *
-        Math.max(0, magnitude - 6) *
-        (magnitude > 20 ? 1 + (magnitude - 20) / 36 : 1);
-      advanceChapter(adjustedDelta, "touch");
+      lastTouchDelta = delta;
+      advanceChapter(delta, "touch");
     };
 
     const handleTouchEnd = () => {
+      // Momentum kick: project the last frame's velocity forward so the user
+      // doesn't need to hold their finger down to advance the chapter.
+      if (Math.abs(lastTouchDelta) > 2) {
+        advanceChapter(lastTouchDelta * 4, "touch");
+      }
       touchStartY.current = null;
+      lastTouchDelta = 0;
     };
 
     const handleKeyDown = (e) => {
@@ -1596,12 +1605,11 @@ export default function AtmosphereScrolly() {
     };
 
     const container = containerRef.current;
+    // Wheel and keyboard on window so they fire even when focus is outside the container.
     window.addEventListener("wheel", handleWheel, { passive: false });
-    window.addEventListener("touchstart", handleTouchStart, { passive: false });
-    window.addEventListener("touchmove", handleTouchMove, { passive: false });
-    window.addEventListener("touchend", handleTouchEnd, { passive: true });
-    window.addEventListener("touchcancel", handleTouchEnd, { passive: true });
     window.addEventListener("keydown", handleKeyDown);
+    // Touch listeners scoped to the container only — putting { passive: false } on
+    // window touchstart blocks the browser's entire scroll pipeline globally.
     if (container) container.addEventListener("wheel", handleWheel, { passive: false });
     if (container) container.addEventListener("touchstart", handleTouchStart, { passive: false });
     if (container) container.addEventListener("touchmove", handleTouchMove, { passive: false });
@@ -1609,10 +1617,6 @@ export default function AtmosphereScrolly() {
     if (container) container.addEventListener("touchcancel", handleTouchEnd, { passive: true });
     return () => {
       window.removeEventListener("wheel", handleWheel);
-      window.removeEventListener("touchstart", handleTouchStart);
-      window.removeEventListener("touchmove", handleTouchMove);
-      window.removeEventListener("touchend", handleTouchEnd);
-      window.removeEventListener("touchcancel", handleTouchEnd);
       window.removeEventListener("keydown", handleKeyDown);
       if (container) container.removeEventListener("wheel", handleWheel);
       if (container) container.removeEventListener("touchstart", handleTouchStart);
