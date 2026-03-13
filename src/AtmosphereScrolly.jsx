@@ -104,7 +104,6 @@ const CHAPTER_BREAKS = {
   12: {
     lines: [
       "You've reached the tropopause, at about 12 km.",
-      "Almost everything you think of as \"weather\" is confined to the troposphere that you just passed through.",
       "Below this height, it gets colder with altitude. Warm air rises, cold air sinks, and the atmosphere churns.",
       "Above it is the stratosphere. Temperature starts to increase with height, so colder, denser air sits below warmer air above.",
       "This means air is stratified, and doesn't naturally churn or convect.",
@@ -1579,7 +1578,11 @@ export default function AtmosphereScrolly() {
 
   useEffect(() => {
     const el = containerRef.current;
-    if (!el || activeChapterKm || !hasUserNavigated.current) return;
+    // Skip at sea level — alignToSeaLevel intentionally places the ocean in the lower half
+    // of the viewport, which is offset from what this effect computes. Snapping here would
+    // jerk the page on the first scroll gesture (or whenever iOS Safari resizes the viewport
+    // as the browser chrome hides/shows).
+    if (!el || activeChapterKm || !hasUserNavigated.current || currentKm === 0) return;
 
     const targetPx = altitudeToPixels(currentKm) + oceanHeight;
     const targetScrollTop = el.scrollHeight - el.clientHeight - targetPx;
