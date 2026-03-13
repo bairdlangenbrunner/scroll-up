@@ -1171,14 +1171,13 @@ export default function AtmosphereScrolly() {
     }
     return {
       width: window.innerWidth,
-      height: Math.round(window.visualViewport?.height ?? window.innerHeight),
+      height: window.innerHeight,
     };
   });
   // Sea level should sit halfway up the visible scene so the ocean fills the lower half.
   const [oceanHeight, setOceanHeight] = useState(400);
   const totalHeight = ATM_HEIGHT + oceanHeight;
   const [currentKm, setCurrentKm] = useState(0);
-  const currentKmRef = useRef(0);
   // const [showClimate, setShowClimate] = useState(false);
   const showClimate = false;
   const [isTempDragging, setIsTempDragging] = useState(false);
@@ -1207,21 +1206,19 @@ export default function AtmosphereScrolly() {
     return undefined;
   }, []);
 
-  // Update on resize
+  // Update on true resize (orientation changes etc) — NOT on visualViewport resize,
+  // which fires constantly on iOS as the browser chrome hides/shows and would
+  // cascade into oceanHeight changes and scroll snapping.
   useEffect(() => {
     const onResize = () => {
       setViewport({
         width: window.innerWidth,
-        height: Math.round(window.visualViewport?.height ?? window.innerHeight),
+        height: window.innerHeight,
       });
     };
     onResize();
     window.addEventListener("resize", onResize);
-    window.visualViewport?.addEventListener("resize", onResize);
-    return () => {
-      window.removeEventListener("resize", onResize);
-      window.visualViewport?.removeEventListener("resize", onResize);
-    };
+    return () => window.removeEventListener("resize", onResize);
   }, []);
 
   // ─── Chapter break state ───
@@ -1325,9 +1322,7 @@ export default function AtmosphereScrolly() {
     const km = pixelsToAltitude(Math.max(0, scrollBottom));
     setCurrentKm((prev) => {
       const next = Math.max(0, Math.min(km, MAX_ALTITUDE_KM));
-      if (next === prev) return prev;
-      currentKmRef.current = next;
-      return next;
+      return next === prev ? prev : next;
     });
   }, [oceanHeight]);
 
@@ -1579,23 +1574,6 @@ export default function AtmosphereScrolly() {
     alignToSeaLevel(oceanHeight);
   }, [oceanHeight, activeChapterKm, alignToSeaLevel]);
 
-  useEffect(() => {
-    const el = containerRef.current;
-    const km = currentKmRef.current;
-    // Only re-sync on viewport resize (oceanHeight change) or chapter transitions —
-    // NOT on every scroll event. Putting currentKm in deps would snap scroll back on
-    // every render during momentum, breaking inertia completely.
-    // Skip at sea level: alignToSeaLevel positions the ocean in the lower half of the
-    // viewport, intentionally offset from what this formula computes.
-    if (!el || activeChapterKm || !hasUserNavigated.current || km === 0) return;
-
-    const targetPx = altitudeToPixels(km) + oceanHeight;
-    const targetScrollTop = el.scrollHeight - el.clientHeight - targetPx;
-    if (Math.abs(el.scrollTop - targetScrollTop) > 1) {
-      el.scrollTop = targetScrollTop;
-    }
-  }, [oceanHeight, activeChapterKm]);
-
   const bgColor = getBackgroundColor(currentKm);
   const temp = getTemperature(currentKm).toFixed(0);
   const pressure = getPressure(currentKm);
@@ -1615,7 +1593,7 @@ export default function AtmosphereScrolly() {
     <div
       style={{
         width: "100%",
-        height: viewport.height + "px",
+        height: "100svh",
         display: "flex",
         flexDirection: "column",
         fontFamily: "'Open Sans', 'Roboto Mono', sans-serif",
@@ -1623,6 +1601,19 @@ export default function AtmosphereScrolly() {
         overflow: "hidden",
       }}
     >
+      {/* ─── Chapter dim overlay ─── */}
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 45,
+          background: "rgba(0,0,0,0.5)",
+          opacity: activeChapterKm && !chapterFadingOut ? 1 : 0,
+          transition: "opacity 0.4s ease",
+          pointerEvents: "none",
+        }}
+      />
+
       {/* ─── Chapter Overlay ─── */}
       {activeChapterKm && (
         <ChapterOverlay
