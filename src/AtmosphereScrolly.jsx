@@ -856,6 +856,64 @@ function AltitudeRuler({ currentKm, onDragAltitude, onDragStateChange, compact, 
   );
 }
 
+// ─── UFO ─────────────────────────────────────────────────────────────
+function PixelUFO({ oceanHeight }) {
+  // Midpoint of the 400px buffer zone above the 550km line
+  const bottom = altitudeToPixels(MAX_ALTITUDE_KM) + oceanHeight + 200;
+  return (
+    <div
+      style={{
+        position: "absolute",
+        left: "50%",
+        bottom,
+        transform: "translateX(-50%)",
+        pointerEvents: "none",
+        zIndex: 3,
+        animation: "ufo-bob 4s ease-in-out infinite",
+      }}
+    >
+      <style>{`
+        @keyframes ufo-bob {
+          0%, 100% { transform: translateX(-50%) translateY(0px); }
+          50%       { transform: translateX(-50%) translateY(-18px); }
+        }
+      `}</style>
+      <svg width="56" height="28" viewBox="0 0 56 28" shapeRendering="crispEdges" aria-hidden="true">
+        {/* Dome — blue glass */}
+        <g fill="#50b4e0">
+          <rect x="20" y="0"  width="16" height="4" />
+          <rect x="18" y="4"  width="20" height="4" />
+          <rect x="16" y="8"  width="24" height="3" />
+        </g>
+        {/* Dome highlight */}
+        <g fill="#90d8f8">
+          <rect x="22" y="1"  width="6"  height="2" />
+          <rect x="20" y="5"  width="5"  height="2" />
+        </g>
+        {/* Hull — metallic grey */}
+        <g fill="#b8c8d8">
+          <rect x="12" y="10" width="32" height="4" />
+          <rect x="2"  y="14" width="52" height="6" />
+        </g>
+        {/* Hull shading — darker underside */}
+        <g fill="#8aa0b2">
+          <rect x="8"  y="20" width="40" height="3" />
+          <rect x="16" y="22" width="24" height="2" />
+          <rect x="20" y="24" width="16" height="2" />
+        </g>
+        {/* Hull highlight strip */}
+        <g fill="#d8e8f4">
+          <rect x="4"  y="14" width="48" height="2" />
+        </g>
+        {/* Lights */}
+        <rect x="10" y="20" width="4" height="3" fill="#f8d040" />
+        <rect x="26" y="20" width="4" height="3" fill="#60e880" />
+        <rect x="42" y="20" width="4" height="3" fill="#f07030" />
+      </svg>
+    </div>
+  );
+}
+
 // ─── Stars ───────────────────────────────────────────────────────────
 function Stars() {
   const stars = useMemo(
@@ -1451,23 +1509,8 @@ const StaticAtmosphereScene = memo(function StaticAtmosphereScene({
       <EverestComparison compact={isCompact} phone={isPhone} oceanHeight={oceanHeight} />
       <BurjComparison compact={isCompact} phone={isPhone} oceanHeight={oceanHeight} />
       <Stars />
+      <PixelUFO oceanHeight={oceanHeight} />
 
-      <div
-        style={{
-          position: "absolute",
-          top: 60,
-          left: 0,
-          right: 0,
-          textAlign: "center",
-          color: "rgba(255,255,255,0.38)",
-          fontSize: isPhone ? "12px" : "13px",
-          letterSpacing: "0.15em",
-          textTransform: "uppercase",
-          padding: isPhone ? "0 56px" : "0 20px",
-        }}
-      >
-        ~550 km, the boundary blurs into space
-      </div>
     </>
   );
 });
