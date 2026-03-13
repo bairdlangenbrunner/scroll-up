@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { memo, useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { getChapterOverlayState } from "./chapterScroll";
 
 // ─── Scale & Constants ───────────────────────────────────────────────
 const MAX_ALTITUDE_KM = 550;
@@ -175,6 +176,12 @@ function cToF(celsius) {
   return (celsius * 9) / 5 + 32;
 }
 
+function normalizeWheelDelta(event) {
+  if (event.deltaMode === 1) return event.deltaY * 16;
+  if (event.deltaMode === 2) return event.deltaY * window.innerHeight;
+  return event.deltaY;
+}
+
 function formatTempWithF(celsius, digits = 0) {
   const fahrenheit = cToF(celsius);
   return `${celsius.toFixed(digits)}°C (${fahrenheit.toFixed(digits)}°F)`;
@@ -259,7 +266,7 @@ function getLandmarkOffset(km, compact, phone) {
 // Each line scrolls from below the viewport to above it.
 // `progress` is a continuous 0→1 value driven by wheel input.
 // Each line owns a slice of the progress range.
-function ChapterOverlay({ chapter, progress, fadingOut, compact }) {
+function ChapterOverlay({ chapter, progress, compact }) {
   if (!chapter) return null;
 
   const lineCount = chapter.lines.length;
@@ -276,8 +283,7 @@ function ChapterOverlay({ chapter, progress, fadingOut, compact }) {
         zIndex: 50,
         overflow: "hidden",
         pointerEvents: "none",
-        transition: "opacity 0.5s ease",
-        opacity: fadingOut ? 0 : 1,
+        opacity: 1,
       }}
     >
       {/* Each line scrolls continuously top → bottom with overlap between lines */}
@@ -323,7 +329,6 @@ function ChapterOverlay({ chapter, progress, fadingOut, compact }) {
               opacity: opacity,
               zIndex: t > 0 && t < 1 ? 2 : wasPassed ? 0 : 1,
               willChange: "transform, opacity",
-              transition: "opacity 120ms linear",
             }}
           >
             <div
@@ -336,8 +341,6 @@ function ChapterOverlay({ chapter, progress, fadingOut, compact }) {
                 margin: compact ? 0 : "0 auto",
                 textAlign: "left",
                 background: "rgba(0, 0, 0, 0.35)",
-                backdropFilter: "blur(12px)",
-                WebkitBackdropFilter: "blur(12px)",
                 padding: compact ? "10px 12px" : "12px 16px",
                 borderRadius: 12,
                 border: "1px solid rgba(255, 255, 255, 0.08)",
@@ -488,6 +491,7 @@ function TempProfile({ currentKm, showClimate, onDragAltitude, onDragStateChange
         flexDirection: "column",
         alignItems: "center",
         justifyContent: fullHeight ? "flex-start" : "center",
+        pointerEvents: "none",
       }}
     >
       <div style={{ position: "relative" }}>
@@ -502,15 +506,14 @@ function TempProfile({ currentKm, showClimate, onDragAltitude, onDragStateChange
             overflow: "visible",
             background: minimalMobileRail ? "rgba(0,0,0,0.2)" : "rgba(0,0,0,0.35)",
             borderRadius: minimalMobileRail ? 10 : 10,
-            backdropFilter: minimalMobileRail ? "blur(10px)" : "blur(10px)",
             border: minimalMobileRail
               ? "1px solid rgba(255,255,255,0.1)"
               : isDragging
                 ? "1px solid rgba(255,200,100,0.45)"
                 : "1px solid rgba(255,255,255,0.12)",
             cursor: isDragging ? "grabbing" : "grab",
-            transition: "border 0.2s ease",
             touchAction: "none",
+            pointerEvents: "auto",
           }}
         >
           {!minimalMobileRail && (
@@ -603,7 +606,6 @@ function TempProfile({ currentKm, showClimate, onDragAltitude, onDragStateChange
             cx={curX} cy={curY} r={isDragging ? 6 : 4.5}
             fill={isDragging ? "rgba(255,220,130,1)" : "rgba(255,200,100,0.9)"}
             stroke="rgba(255,255,255,0.6)" strokeWidth={isDragging ? 1.5 : 1}
-            style={{ transition: "r 0.15s ease" }}
           />
 
           {!minimalMobileRail && (
@@ -698,6 +700,7 @@ function AltitudeRuler({ currentKm, onDragAltitude, onDragStateChange, compact, 
         height: rulerHeight,
         width: rulerWidth,
         zIndex: 30,
+        pointerEvents: "none",
       }}
     >
       <div
@@ -712,9 +715,9 @@ function AltitudeRuler({ currentKm, onDragAltitude, onDragStateChange, compact, 
             ? "1px solid rgba(120,190,255,0.45)"
             : "1px solid rgba(255,255,255,0.12)",
           borderRadius: 12,
-          backdropFilter: "blur(10px)",
           cursor: isDragging ? "grabbing" : "grab",
           touchAction: "none",
+          pointerEvents: "auto",
         }}
       >
         <div
@@ -816,7 +819,6 @@ function AltitudeRuler({ currentKm, onDragAltitude, onDragStateChange, compact, 
                 ? "rgba(100, 140, 220, 0.9)"
                 : "rgba(150, 130, 255, 0.82)",
               border: "1px solid rgba(255,255,255,0.72)",
-              transition: "width 0.15s ease, height 0.15s ease, background 0.5s ease",
               transform: "translate(-50%, -50%)",
             }}
           />
@@ -846,172 +848,19 @@ function AltitudeRuler({ currentKm, onDragAltitude, onDragStateChange, compact, 
 
 // ─── Stars ───────────────────────────────────────────────────────────
 function Stars() {
-  const stars = useMemo(
-    () => {
-      const random = createSeededRandom(101);
-      return Array.from({ length: 110 }, () => {
-        const depth = Math.pow(random(), 0.6);
-        return {
-          top: depth * 34,
-          left: random() * 100,
-          size: 1.4 + depth * 4.2 + random() * 1.8,
-          opacity: 0.3 + depth * 0.75 + random() * 0.14,
-          twinkle: random() * 4 + 2,
-          delay: random() * 3,
-          glow: 6 + depth * 11,
-        };
-      });
-    },
-    []
-  );
-  return (
-    <>
-      {stars.map((s, i) => (
-        <div
-          key={i}
-          style={{
-            position: "absolute",
-            top: s.top + "%",
-            left: s.left + "%",
-            width: s.size,
-            height: s.size,
-            background: "#fff",
-            borderRadius: "50%",
-            opacity: s.opacity,
-            boxShadow: `0 0 ${s.glow}px rgba(255,255,255,0.45)`,
-            animation: `twinkle ${s.twinkle}s ease-in-out infinite`,
-            animationDelay: `${s.delay}s`,
-          }}
-        />
-      ))}
-    </>
-  );
+  return null;
 }
 
 function CruisingPlanes({ currentKm, topVisibleKm, oceanHeight }) {
-  const isVisible = topVisibleKm >= 10 && currentKm <= 14;
-
-  if (!isVisible) return null;
-
-  const planeBottom = altitudeToPixels(10) + oceanHeight + 36;
-  const planes = [
-    { delay: "0s", duration: "18s", size: 48, bottomOffset: 0 },
-    { delay: "-6s", duration: "22s", size: 40, bottomOffset: 34 },
-    { delay: "-12s", duration: "20s", size: 44, bottomOffset: -30 },
-  ];
-
-  return (
-    <>
-      {planes.map((plane, index) => (
-        <div
-          key={index}
-          style={{
-            position: "absolute",
-            bottom: planeBottom + plane.bottomOffset,
-            left: "-10%",
-            fontSize: plane.size,
-            lineHeight: 1,
-            opacity: 0.78,
-            filter: "drop-shadow(0 2px 10px rgba(255,255,255,0.15))",
-            animation: `planeFlyby ${plane.duration} linear infinite`,
-            animationDelay: plane.delay,
-            pointerEvents: "none",
-            transformOrigin: "center",
-          }}
-        >
-          ✈️
-        </div>
-      ))}
-    </>
-  );
+  return null;
 }
 
 function TroposphereClouds({ oceanHeight }) {
-  const clouds = useMemo(
-    () => {
-      const random = createSeededRandom(202);
-      return Array.from({ length: 10 }, (_, index) => ({
-        id: index,
-        km: random() * 11.5 + 0.2,
-        left: random() * 100,
-        size: random() * 36 + 56,
-        opacity: 1,
-        duration: random() * 28 + 72,
-        delay: -(random() * 80),
-      }));
-    },
-    []
-  );
-
-  return (
-    <>
-      {clouds.map((cloud) => (
-        <div
-          key={cloud.id}
-          style={{
-            position: "absolute",
-            left: `${cloud.left}%`,
-            bottom: altitudeToPixels(cloud.km) + oceanHeight,
-            fontSize: cloud.size,
-            lineHeight: 1,
-            opacity: cloud.opacity,
-            filter: "blur(0.2px)",
-            transform: "translateX(-50%)",
-            animation: `cloudDrift ${cloud.duration}s linear infinite`,
-            animationDelay: `${cloud.delay}s`,
-            pointerEvents: "none",
-            zIndex: 2,
-          }}
-        >
-          ☁️
-        </div>
-      ))}
-    </>
-  );
+  return null;
 }
 
 function OzoneMolecules({ oceanHeight }) {
-  const molecules = useMemo(
-    () => {
-      const random = createSeededRandom(303);
-      return Array.from({ length: 18 }, (_, index) => ({
-        id: index,
-        km: 20 + random() * 5,
-        left: random() * 100,
-        size: random() * 8 + 12,
-        opacity: random() * 0.18 + 0.18,
-        duration: random() * 18 + 22,
-        delay: -(random() * 24),
-      }));
-    },
-    []
-  );
-
-  return (
-    <>
-      {molecules.map((molecule) => (
-        <div
-          key={molecule.id}
-          style={{
-            position: "absolute",
-            left: `${molecule.left}%`,
-            bottom: altitudeToPixels(molecule.km) + oceanHeight,
-            fontSize: molecule.size,
-            lineHeight: 1,
-            color: `rgba(210, 235, 255, ${molecule.opacity})`,
-            fontFamily: "'Roboto Mono', monospace",
-            transform: "translateX(-50%)",
-            animation: `ozoneDrift ${molecule.duration}s ease-in-out infinite`,
-            animationDelay: `${molecule.delay}s`,
-            pointerEvents: "none",
-            zIndex: 2,
-          }}
-        >
-          O₃
-        </div>
-      ))}
-    </>
-  );
+  return null;
 }
 
 function BurjComparison({ compact, phone, oceanHeight }) {
@@ -1163,35 +1012,235 @@ function KilimanjaroComparison({ compact, phone, oceanHeight }) {
   );
 }
 
+const StaticAtmosphereScene = memo(function StaticAtmosphereScene({
+  oceanHeight,
+  totalHeight,
+  isPhone,
+  isCompact,
+  contentRight,
+  desktopLabelInset,
+}) {
+  return (
+    <>
+      {/* ─── Ocean ─── */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: oceanHeight + 24,
+          transform: "translateY(24px)",
+          background: "#0e4d6b",
+        }}
+      />
+
+      {/* ─── Intro text (below ocean) ─── */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: 30,
+          left: isPhone ? "15vw" : 0,
+          right: 0,
+          textAlign: isPhone ? "left" : "center",
+          padding: isPhone ? "0 20px 0 0" : "0 20px",
+        }}
+      >
+        <div style={{ marginBottom: 10, fontSize: isPhone ? "44px" : "52px", lineHeight: 1, color: "rgba(140, 190, 210, 0.42)" }}>
+          ↑
+        </div>
+        <div style={{ fontSize: isPhone ? "16px" : "18px", color: "rgba(160, 210, 228, 0.76)", maxWidth: isPhone ? 260 : 460, margin: isPhone ? 0 : "0 auto", lineHeight: 1.65, fontFamily: "'Domine', Georgia, serif" }}>
+          You&apos;re at sea level. The atmosphere stretches above you for hundreds of kilometers. Scroll up through it.
+        </div>
+      </div>
+
+      {/* ─── Layer Backgrounds ─── */}
+      {layers.map((layer) => {
+        const bottom = altitudeToPixels(layer.startKm) + oceanHeight;
+        const height = altitudeToPixels(layer.endKm) - altitudeToPixels(layer.startKm);
+        return (
+          <div
+            key={layer.name}
+            style={{
+              position: "absolute",
+              bottom: bottom,
+              height: height,
+              left: 0,
+              right: 0,
+              background: layer.color,
+              borderTop: "none",
+            }}
+          />
+        );
+      })}
+
+      {/* ─── Layer Labels (right side) ─── */}
+      {layers.map((layer) => {
+        const bottomPx = altitudeToPixels(layer.startKm) + oceanHeight;
+        const midKm = (layer.startKm + layer.endKm) / 2;
+        const subColor = getSubtextColor(midKm);
+        const layerOffset = getLayerLabelOffset(layer.name, isCompact, isPhone);
+        const labelBottom = bottomPx + 30 + layerOffset;
+        const descriptionBottom = labelBottom + (isPhone ? 52 : isCompact ? 76 : 94);
+        const textAnchorStyle = isPhone
+          ? { left: "15vw", right: "auto", textAlign: "left", maxWidth: 220 }
+          : { left: "auto", right: contentRight + 20, textAlign: "right", maxWidth: isCompact ? 190 : 240 };
+        return (
+          <div key={layer.name + "-label"}>
+            <div
+              style={{
+                position: "absolute",
+                bottom: labelBottom,
+                left: isPhone ? "15vw" : desktopLabelInset,
+                right: isPhone ? "auto" : contentRight + 20,
+                zIndex: layer.name === "Troposphere" ? 3 : 1,
+                pointerEvents: "none",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: isPhone ? "34px" : isCompact ? "54px" : "72px",
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  color: subColor,
+                  opacity: isPhone ? 0.34 : 0.32,
+                  fontWeight: 800,
+                  lineHeight: 0.95,
+                  textAlign: isPhone ? "left" : "right",
+                  whiteSpace: "nowrap",
+                  transform: "none",
+                  transformOrigin: "right bottom",
+                  textShadow: "0 0 18px rgba(0,0,0,0.18)",
+                }}
+              >
+                {layer.name}
+              </div>
+            </div>
+
+            <div
+              style={{
+                position: "absolute",
+                bottom: descriptionBottom,
+                zIndex: 9,
+                ...textAnchorStyle,
+              }}
+            />
+          </div>
+        );
+      })}
+
+      {/* ─── Landmark dashed lines ─── */}
+      {landmarks.map((lm) => {
+        if (lm.km === 0) return null;
+        const bottomPx = altitudeToPixels(lm.km) + oceanHeight;
+        const isMajorBoundary = Boolean(lm.isBoundary);
+        return (
+          <div
+            key={lm.label + "-line"}
+            style={{
+              position: "absolute",
+              bottom: bottomPx,
+              left: 0,
+              right: 0,
+              height: isMajorBoundary ? 5 : 0,
+              ...(isMajorBoundary
+                ? {
+                    backgroundImage: "repeating-linear-gradient(to right, rgba(255,255,255,0.88) 0px, rgba(255,255,255,0.88) 32px, transparent 32px, transparent 52px)",
+                  }
+                : {
+                    borderTop: "3px dashed rgba(255,255,255,0.28)",
+                  }),
+              pointerEvents: "none",
+              zIndex: isMajorBoundary ? 5 : "auto",
+            }}
+          />
+        );
+      })}
+
+      {/* ─── Landmarks (left side) ─── */}
+      {landmarks.map((lm) => {
+        const bottomPx = altitudeToPixels(lm.km) + oceanHeight;
+        const lmTextColor = lm.km === 0 ? "rgba(235, 243, 248, 0.96)" : getTextColor(lm.km);
+        const lmSubColor = lm.km === 0 ? "rgba(214, 229, 238, 0.88)" : getSubtextColor(lm.km);
+        const landmarkOffset = getLandmarkOffset(lm.km, isCompact, isPhone);
+        const landmarkGap = isPhone ? 7 : 9;
+        const landmarkTop = totalHeight - bottomPx + landmarkGap;
+        return (
+          <div
+            key={lm.label}
+            style={{
+              position: "absolute",
+              top: landmarkTop,
+              left: isPhone ? `calc(15vw + ${landmarkOffset}px)` : `${desktopLabelInset + landmarkOffset}px`,
+              maxWidth: isPhone ? "58vw" : isCompact ? "42%" : "36%",
+              zIndex: 8,
+            }}
+          >
+            <div>
+              <div
+                style={{
+                  fontSize: lm.isBoundary ? (isPhone ? "11px" : "13px") : isPhone ? "15px" : "18px",
+                  fontWeight: lm.isBoundary ? 400 : 600,
+                  color: lm.isBoundary ? lmSubColor : lmTextColor,
+                  letterSpacing: lm.isBoundary ? "0.1em" : "0",
+                  textTransform: lm.isBoundary ? "uppercase" : "none",
+                  lineHeight: isPhone ? 1.3 : 1.2,
+                }}
+              >
+                {lm.label}
+                <span style={{ display: "inline-block", fontSize: isPhone ? "11px" : "13px", color: lmSubColor, marginLeft: 8, fontWeight: 400 }}>
+                  {lm.km < 1 ? (lm.km * 1000).toFixed(0) + " m" : lm.km + " km"}
+                </span>
+              </div>
+              <div style={{ fontSize: isPhone ? "12px" : isCompact ? "14px" : "16px", color: lmSubColor, marginTop: 3, lineHeight: isPhone ? 1.45 : 1.6, fontFamily: "'Domine', Georgia, serif" }}>
+                {lm.detail}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+
+      <TroposphereClouds oceanHeight={oceanHeight} />
+      <OzoneMolecules oceanHeight={oceanHeight} />
+      <KilimanjaroComparison compact={isCompact} phone={isPhone} oceanHeight={oceanHeight} />
+      <MountainComparison compact={isCompact} phone={isPhone} oceanHeight={oceanHeight} />
+      <BurjComparison compact={isCompact} phone={isPhone} oceanHeight={oceanHeight} />
+      <Stars />
+
+      <div
+        style={{
+          position: "absolute",
+          top: 60,
+          left: 0,
+          right: 0,
+          textAlign: "center",
+          color: "rgba(255,255,255,0.38)",
+          fontSize: isPhone ? "12px" : "13px",
+          letterSpacing: "0.15em",
+          textTransform: "uppercase",
+          padding: isPhone ? "0 56px" : "0 20px",
+        }}
+      >
+        ~550 km, the boundary blurs into space
+      </div>
+    </>
+  );
+});
+
 // ─── Main Component ──────────────────────────────────────────────────
 export default function AtmosphereScrolly() {
   const [viewport, setViewport] = useState(() => {
     if (typeof window === "undefined") {
       return { width: 1280, height: 800 };
     }
-    return {
-      width: window.innerWidth,
-      height: window.innerHeight,
-    };
+    return { width: window.innerWidth, height: window.innerHeight };
   });
-  // Sea level should sit halfway up the visible scene so the ocean fills the lower half.
-  const [oceanHeight, setOceanHeight] = useState(400);
-  const totalHeight = ATM_HEIGHT + oceanHeight;
-  const [currentKm, setCurrentKm] = useState(0);
-  // const [showClimate, setShowClimate] = useState(false);
-  const showClimate = false;
-  const [isTempDragging, setIsTempDragging] = useState(false);
-  const [isRulerDragging, setIsRulerDragging] = useState(false);
-  const containerRef = useRef(null);
-  const hudRef = useRef(null);
   const [hudHeight, setHudHeight] = useState(88);
-
-  const getHalfVisibleSceneHeight = useCallback(() => {
-    if (containerRef.current) {
-      return Math.round(containerRef.current.clientHeight / 2);
-    }
-    return Math.round(Math.max(viewport.height - hudHeight, 0) / 2);
-  }, [viewport.height, hudHeight]);
+  const [currentKm, setCurrentKm] = useState(0);
+  const rootRef = useRef(null);
+  const hudRef = useRef(null);
+  const scrollFrameRef = useRef(0);
+  const hasUserNavigated = useRef(false);
 
   useEffect(() => {
     if (typeof document === "undefined") return undefined;
@@ -1206,9 +1255,6 @@ export default function AtmosphereScrolly() {
     return undefined;
   }, []);
 
-  // Update on true resize (orientation changes etc) — NOT on visualViewport resize,
-  // which fires constantly on iOS as the browser chrome hides/shows and would
-  // cascade into oceanHeight changes and scroll snapping.
   useEffect(() => {
     const onResize = () => {
       setViewport({
@@ -1216,41 +1262,11 @@ export default function AtmosphereScrolly() {
         height: window.innerHeight,
       });
     };
+
     onResize();
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
-
-  // ─── Chapter break state ───
-  const [activeChapterKm, setActiveChapterKm] = useState(null);
-  const [chapterProgress, setChapterProgress] = useState(0); // 0→1 continuous
-  const [chapterFadingOut, setChapterFadingOut] = useState(false);
-  const [chapterDirection, setChapterDirection] = useState("up"); // "up" or "down"
-  const prevCenterKm = useRef(0);
-  const chapterActivatedAt = useRef(0);
-  const hasUserNavigated = useRef(false);
-  const chapterCooldown = useRef(false); // suppress snap right after chapter closes
-  const frozenScrollTop = useRef(null); // scroll position locked during a chapter
-  const touchStartY = useRef(null);
-
-  const activeChapter = activeChapterKm ? CHAPTER_BREAKS[activeChapterKm] : null;
-  const isScaleDragging = isTempDragging || isRulerDragging;
-  const isPhone = viewport.width < 680;
-  const isCompact = viewport.width < 900; // intermediate size — affects fonts/layout but NOT svg widths
-  const showRuler = !isPhone;
-  const mobileRailWidth = 0;
-  // Shared overlay width — always 72px on non-phone regardless of isCompact
-  const overlayWidth = isPhone ? 0 : 72;
-  const overlayGap = isPhone ? 0 : 20; // breathing room between SVG edge and content
-  // Content insets — keep text clear of the floating SVGs
-  const contentLeft = isPhone ? 0 : overlayWidth + overlayGap;
-  const contentRight = showRuler ? overlayWidth + overlayGap : 0;
-  const desktopLabelInset = contentLeft + 20;
-  const desktopOverlayViewport = Math.max(viewport.height - hudHeight - 24, 420);
-  const desktopOverlayHeight = Math.max(Math.round(desktopOverlayViewport * 0.9), 420);
-  const desktopOverlayTop = hudHeight + Math.max((desktopOverlayViewport - desktopOverlayHeight) / 2 + 8, 8);
-  const profileTopOffset = isPhone ? hudHeight + 8 : desktopOverlayTop;
-  const profileAvailableHeight = isPhone ? Math.max(viewport.height - hudHeight - 16, 320) : desktopOverlayHeight;
 
   useEffect(() => {
     if (!hudRef.current) return undefined;
@@ -1270,12 +1286,6 @@ export default function AtmosphereScrolly() {
   }, [viewport.width]);
 
   useEffect(() => {
-    requestAnimationFrame(() => {
-      setOceanHeight(getHalfVisibleSceneHeight());
-    });
-  }, [getHalfVisibleSceneHeight, hudHeight, viewport.height]);
-
-  useEffect(() => {
     const markNavigated = () => {
       hasUserNavigated.current = true;
     };
@@ -1291,288 +1301,95 @@ export default function AtmosphereScrolly() {
     };
   }, []);
 
-  const clearChapterState = useCallback(() => {
-    setActiveChapterKm(null);
-    setChapterProgress(0);
-    setChapterFadingOut(false);
-    setChapterDirection("up");
-    chapterCooldown.current = false;
-    frozenScrollTop.current = null;
-    chapterActivatedAt.current = 0;
-    prevCenterKm.current = 0;
-    if (containerRef.current) containerRef.current.style.touchAction = "";
-  }, []);
+  const isPhone = viewport.width < 680;
+  const isCompact = viewport.width < 900;
+  const showRuler = !isPhone;
+  const overlayWidth = isPhone ? 0 : 72;
+  const overlayGap = isPhone ? 0 : 20;
+  const contentLeft = isPhone ? 0 : overlayWidth + overlayGap;
+  const contentRight = showRuler ? overlayWidth + overlayGap : 0;
+  const desktopLabelInset = contentLeft + 20;
+  const visibleSceneHeight = Math.max(viewport.height, 320);
+  const oceanHeight = Math.round(Math.max(visibleSceneHeight - hudHeight, 0) / 2);
+  const totalHeight = ATM_HEIGHT + oceanHeight;
+  const maxTravelPx = Math.max(0, totalHeight - visibleSceneHeight / 2 - oceanHeight);
+  const sceneOffsetPx = Math.max(
+    0,
+    totalHeight - visibleSceneHeight / 2 - oceanHeight - altitudeToPixels(currentKm)
+  );
+  const desktopOverlayViewport = Math.max(viewport.height - hudHeight - 24, 420);
+  const desktopOverlayHeight = Math.max(Math.round(desktopOverlayViewport * 0.9), 420);
+  const desktopOverlayTop = hudHeight + Math.max((desktopOverlayViewport - desktopOverlayHeight) / 2 + 8, 8);
+  const profileTopOffset = isPhone ? hudHeight + 8 : desktopOverlayTop;
+  const profileAvailableHeight = isPhone ? Math.max(viewport.height - hudHeight - 16, 320) : desktopOverlayHeight;
 
-  // Called by TempProfile when user drags the dot
-  const scrollToAltitude = useCallback((km) => {
-    if (!containerRef.current || (activeChapterKm && !isScaleDragging)) return; // block during chapter unless dragging a scale
-    if (isScaleDragging && km <= 0.25) {
-      clearChapterState();
-    }
-    const el = containerRef.current;
-    const targetPx = altitudeToPixels(km) + oceanHeight;
-    const targetScrollTop = el.scrollHeight - el.clientHeight - targetPx;
-    el.scrollTop = targetScrollTop;
-  }, [activeChapterKm, clearChapterState, isScaleDragging, oceanHeight]);
+  const syncScrollToAltitude = useCallback(() => {
+    if (!rootRef.current || typeof window === "undefined") return;
 
-  const updateAltitude = useCallback(() => {
-    if (!containerRef.current) return;
-    const el = containerRef.current;
-    const scrollBottom = el.scrollHeight - el.scrollTop - el.clientHeight - oceanHeight;
-    const km = pixelsToAltitude(Math.max(0, scrollBottom));
+    const rootTop = rootRef.current.getBoundingClientRect().top + window.scrollY;
+    const localScroll = Math.min(
+      maxTravelPx,
+      Math.max(0, window.scrollY - rootTop)
+    );
+    const nextKm = pixelsToAltitude(localScroll);
+
     setCurrentKm((prev) => {
-      const next = Math.max(0, Math.min(km, MAX_ALTITUDE_KM));
-      return next === prev ? prev : next;
+      const clamped = Math.max(0, Math.min(MAX_ALTITUDE_KM, nextKm));
+      return Math.abs(prev - clamped) < 0.01 ? prev : clamped;
     });
-  }, [oceanHeight]);
+  }, [maxTravelPx]);
 
-  const alignToSeaLevel = useCallback((targetOceanHeight, force = false) => {
-    const el = containerRef.current;
-    if (!el) return;
+  const requestScrollSync = useCallback(() => {
+    if (scrollFrameRef.current) return;
 
-    requestAnimationFrame(() => {
-      const nextEl = containerRef.current;
-      if (!nextEl) return;
-      // Don't fight the user's scroll unless explicitly forced (e.g. Reset button).
-      if (!force && hasUserNavigated.current) {
-        updateAltitude();
-        return;
-      }
-      nextEl.scrollTop = nextEl.scrollHeight - nextEl.clientHeight / 2 - targetOceanHeight;
-      updateAltitude();
+    scrollFrameRef.current = requestAnimationFrame(() => {
+      scrollFrameRef.current = 0;
+      syncScrollToAltitude();
     });
-  }, [updateAltitude]);
-
-  // ─── Reset everything ───
-  const handleReset = useCallback(() => {
-    if (!containerRef.current) return;
-    clearChapterState();
-    const targetOceanHeight = getHalfVisibleSceneHeight();
-    setOceanHeight(targetOceanHeight);
-    alignToSeaLevel(targetOceanHeight, true);
-  }, [alignToSeaLevel, clearChapterState, getHalfVisibleSceneHeight]);
-
-  // ─── Detect boundary crossings at viewport center (both directions) ───
-  const centerKm = useMemo(() => {
-    if (!containerRef.current) return currentKm;
-    const el = containerRef.current;
-    const scrollCenter = el.scrollHeight - el.scrollTop - el.clientHeight + el.clientHeight / 2 - oceanHeight;
-    return pixelsToAltitude(Math.max(0, scrollCenter));
-  }, [currentKm, oceanHeight]); // recalc whenever currentKm updates (same scroll event)
+  }, [syncScrollToAltitude]);
 
   useEffect(() => {
-    if (activeChapterKm || chapterCooldown.current || isScaleDragging) return;
-
-    const boundaries = Object.keys(CHAPTER_BREAKS).map(Number);
-    for (const bKm of boundaries) {
-      // Check upward crossing at viewport center
-      const crossedUp = prevCenterKm.current < bKm && centerKm >= bKm;
-      // Check downward crossing at viewport center
-      const crossedDown = prevCenterKm.current > bKm && centerKm <= bKm;
-
-      const direction = crossedUp ? "up" : crossedDown ? "down" : null;
-      if (!direction) continue;
-
-      // Snap scroll to exactly the boundary position and freeze it there
-      if (containerRef.current) {
-        const el = containerRef.current;
-        const boundaryScrollTop = el.scrollHeight - el.clientHeight - (altitudeToPixels(bKm) + oceanHeight) + el.clientHeight / 2;
-        el.scrollTop = boundaryScrollTop;
-        frozenScrollTop.current = boundaryScrollTop;
-        el.style.touchAction = "none"; // prevent native scroll from fighting the JS freeze
-      }
-      setActiveChapterKm(bKm);
-      setChapterDirection(direction);
-      setChapterProgress(direction === "up" ? 0 : 1);
-      chapterActivatedAt.current =
-        typeof performance !== "undefined" ? performance.now() : Date.now();
-      setChapterFadingOut(false);
-      break;
-    }
-
-    prevCenterKm.current = centerKm;
-  }, [centerKm, activeChapterKm, isScaleDragging, oceanHeight]);
-
-  useEffect(() => {
-    if (!isScaleDragging || !activeChapterKm) return;
-    clearChapterState();
-  }, [isScaleDragging, activeChapterKm, clearChapterState]);
-
-  useEffect(() => {
-    if (!isScaleDragging) {
-      prevCenterKm.current = centerKm;
-      return;
-    }
-
-    prevCenterKm.current = centerKm;
-    chapterCooldown.current = false;
-    frozenScrollTop.current = null;
-  }, [isScaleDragging, centerKm]);
-
-  // ─── Handle chapter overlay input (wheel/keyboard/touch) ───
-  useEffect(() => {
-    if (!activeChapterKm || chapterFadingOut) return;
-
-    const chapter = CHAPTER_BREAKS[activeChapterKm];
-    if (!chapter) return;
-
-    const wheelPixelsPerLine = 300;
-    const touchPixelsPerLine = Math.max(viewport.height * 0.8, 250);
-    const totalWheelDistance = chapter.lines.length * wheelPixelsPerLine;
-    const totalTouchDistance = chapter.lines.length * touchPixelsPerLine;
-
-    const dismissChapter = () => {
-      setChapterFadingOut(true);
-      chapterCooldown.current = true;
-      prevCenterKm.current = activeChapterKm;
-      if (containerRef.current && frozenScrollTop.current !== null) {
-        containerRef.current.scrollTop =
-          frozenScrollTop.current + (chapterDirection === "up" ? -80 : 80);
-        containerRef.current.style.touchAction = "";
-      }
-      frozenScrollTop.current = null;
-      chapterActivatedAt.current = 0;
-      setTimeout(() => {
-        setActiveChapterKm(null);
-        setChapterFadingOut(false);
-        setTimeout(() => {
-          chapterCooldown.current = false;
-        }, 300);
-      }, 600);
-    };
-
-    const advanceChapter = (rawDelta, mode = "wheel") => {
-      if (Math.abs(rawDelta) === 0) return;
-      const now = typeof performance !== "undefined" ? performance.now() : Date.now();
-      const activationAge = now - chapterActivatedAt.current;
-      const enteredForward =
-        (chapterDirection === "up" && rawDelta < 0) ||
-        (chapterDirection === "down" && rawDelta > 0);
-
-      // Ignore residual wheel momentum from the scroll that triggered the chapter.
-      // Skip this guard for touch — touch events only fire while a finger is moving.
-      if (activationAge < 100 && enteredForward && mode !== "touch") return;
-
-      const totalDistance = mode === "touch" ? totalTouchDistance : totalWheelDistance;
-      const progressDelta = Math.abs(rawDelta) / totalDistance;
-
-      setChapterProgress((prev) => {
-        let next;
-        if (chapterDirection === "up") {
-          next = rawDelta < 0 ? prev + progressDelta : prev - progressDelta;
-        } else {
-          next = rawDelta > 0 ? prev - progressDelta : prev + progressDelta;
-        }
-
-        next = Math.max(-0.05, Math.min(1.05, next));
-
-        if (chapterDirection === "up" && next >= 1.0 && prev < 1.0) {
-          dismissChapter();
-          return Math.min(1, next);
-        }
-        if (chapterDirection === "down" && next <= 0.0 && prev > 0.0) {
-          dismissChapter();
-          return Math.max(0, next);
-        }
-        if (chapterDirection === "up" && next <= 0.0 && prev > 0.0) {
-          dismissChapter();
-          return 0;
-        }
-        if (chapterDirection === "down" && next >= 1.0 && prev < 1.0) {
-          dismissChapter();
-          return 1;
-        }
-
-        const clamped = Math.max(0, Math.min(1, next));
-        return clamped === prev ? prev : clamped;
-      });
-    };
-
-    const handleWheel = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      advanceChapter(e.deltaY, "wheel");
-    };
-
-    let lastTouchDelta = 0;
-
-    const handleTouchStart = (e) => {
-      touchStartY.current = e.touches[0]?.clientY ?? null;
-      lastTouchDelta = 0;
-    };
-
-    const handleTouchMove = (e) => {
-      const nextY = e.touches[0]?.clientY;
-      if (touchStartY.current === null || nextY == null) return;
-      e.preventDefault();
-      e.stopPropagation();
-      const delta = touchStartY.current - nextY;
-      touchStartY.current = nextY;
-      lastTouchDelta = delta;
-      advanceChapter(delta, "touch");
-    };
-
-    const handleTouchEnd = () => {
-      if (Math.abs(lastTouchDelta) > 2) {
-        advanceChapter(lastTouchDelta * 4, "touch");
-      }
-      touchStartY.current = null;
-      lastTouchDelta = 0;
-    };
-
-    const handleKeyDown = (e) => {
-      if (!["ArrowUp", "ArrowDown", "PageUp", "PageDown", " ", "Spacebar"].includes(e.key)) return;
-      e.preventDefault();
-      const delta = e.key === "ArrowUp" || e.key === "PageUp" ? -120 : 120;
-      advanceChapter(delta);
-    };
-
-    const container = containerRef.current;
-    window.addEventListener("wheel", handleWheel, { passive: false });
-    window.addEventListener("keydown", handleKeyDown);
-    if (container) container.addEventListener("wheel", handleWheel, { passive: false });
-    if (container) container.addEventListener("touchstart", handleTouchStart, { passive: false });
-    if (container) container.addEventListener("touchmove", handleTouchMove, { passive: false });
-    if (container) container.addEventListener("touchend", handleTouchEnd, { passive: true });
-    if (container) container.addEventListener("touchcancel", handleTouchEnd, { passive: true });
-    return () => {
-      window.removeEventListener("wheel", handleWheel);
-      window.removeEventListener("keydown", handleKeyDown);
-      if (container) container.removeEventListener("wheel", handleWheel);
-      if (container) container.removeEventListener("touchstart", handleTouchStart);
-      if (container) container.removeEventListener("touchmove", handleTouchMove);
-      if (container) container.removeEventListener("touchend", handleTouchEnd);
-      if (container) container.removeEventListener("touchcancel", handleTouchEnd);
-    };
-  }, [activeChapterKm, chapterFadingOut, chapterDirection, viewport.height]);
-
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
+    if (typeof window === "undefined") return undefined;
 
     const handleScroll = () => {
-      // frozenScrollTop is a ref so this always reads the latest value —
-      // altitude display unfreezes the instant frozenScrollTop is cleared,
-      // not 600 ms later when activeChapterKm finally clears.
-      if (frozenScrollTop.current !== null && containerRef.current) {
-        containerRef.current.scrollTop = frozenScrollTop.current;
-        return;
-      }
-      updateAltitude();
+      requestScrollSync();
     };
 
-    el.addEventListener("scroll", handleScroll, { passive: true });
+    requestScrollSync();
+    window.addEventListener("scroll", handleScroll, { passive: true });
 
-    return () => el.removeEventListener("scroll", handleScroll);
-  }, [updateAltitude]);
+    return () => {
+      if (scrollFrameRef.current) {
+        cancelAnimationFrame(scrollFrameRef.current);
+        scrollFrameRef.current = 0;
+      }
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, [requestScrollSync]);
+
+  const scrollToAltitude = useCallback(
+    (km) => {
+      if (!rootRef.current || typeof window === "undefined") return;
+
+      const rootTop = rootRef.current.getBoundingClientRect().top + window.scrollY;
+      const targetScroll = Math.min(
+        maxTravelPx,
+        Math.max(0, altitudeToPixels(km))
+      );
+      window.scrollTo({ top: rootTop + targetScroll, behavior: "auto" });
+      setCurrentKm(Math.max(0, Math.min(MAX_ALTITUDE_KM, km)));
+    },
+    [maxTravelPx]
+  );
 
   useEffect(() => {
-    const el = containerRef.current;
-    if (!el || activeChapterKm) return;
+    if (!rootRef.current || hasUserNavigated.current || typeof window === "undefined") return;
+    scrollToAltitude(0);
+  }, [scrollToAltitude]);
 
-    if (hasUserNavigated.current) return;
-    alignToSeaLevel(oceanHeight);
-  }, [oceanHeight, activeChapterKm, alignToSeaLevel]);
+  const handleReset = useCallback(() => {
+    scrollToAltitude(0);
+  }, [scrollToAltitude]);
 
   const bgColor = getBackgroundColor(currentKm);
   const temp = getTemperature(currentKm).toFixed(0);
@@ -1582,56 +1399,45 @@ export default function AtmosphereScrolly() {
       ? pressure.toFixed(0) + " hPa"
       : pressure.toExponential(1) + " hPa";
   const currentLayer = layers.find(
-    (l) => currentKm >= l.startKm && currentKm < l.endKm
+    (layer) => currentKm >= layer.startKm && currentKm < layer.endKm
   );
-  const topVisibleKm = currentKm + pixelsToAltitude(containerRef.current?.clientHeight ?? viewport.height);
-
-  // Dim everything behind the chapter overlay
+  const topVisibleKm = Math.min(
+    MAX_ALTITUDE_KM,
+    currentKm + pixelsToAltitude(visibleSceneHeight / 2)
+  );
+  const activeChapterState = getChapterOverlayState(CHAPTER_BREAKS, currentKm);
+  const activeChapter = activeChapterState?.chapter ?? null;
+  const chapterProgress = activeChapterState?.progress ?? 0;
   const behindChapterStyle = {};
 
   return (
-    <div
-      style={{
-        width: "100%",
-        height: "100svh",
-        display: "flex",
-        flexDirection: "column",
-        fontFamily: "'Open Sans', 'Roboto Mono', sans-serif",
-        background: "#000",
-        overflow: "hidden",
-      }}
-    >
-      {/* ─── Chapter dim overlay ─── */}
+    <>
       <div
         style={{
           position: "fixed",
           inset: 0,
           zIndex: 45,
           background: "rgba(0,0,0,0.5)",
-          opacity: activeChapterKm && !chapterFadingOut ? 1 : 0,
-          transition: "opacity 0.4s ease",
+          opacity: activeChapter ? 1 : 0,
           pointerEvents: "none",
         }}
       />
-
-      {/* ─── Chapter Overlay ─── */}
-      {activeChapterKm && (
+      {activeChapter && (
         <ChapterOverlay
           chapter={activeChapter}
           progress={chapterProgress}
-          fadingOut={chapterFadingOut}
           compact={isPhone}
         />
       )}
-
-      {/* ─── Fixed HUD ─── */}
       <div
         ref={hudRef}
         style={{
-          position: "relative",
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
           zIndex: 60,
           background: "rgba(0,0,0,0.7)",
-          backdropFilter: "blur(10px)",
           width: "100%",
           padding: isPhone ? "10px 12px 10px 4px" : "12px 20px",
           display: "flex",
@@ -1640,7 +1446,7 @@ export default function AtmosphereScrolly() {
           flexWrap: "wrap",
           gap: isPhone ? 10 : 16,
           borderBottom: "1px solid rgba(255,255,255,0.1)",
-          flexShrink: 0,
+          pointerEvents: "none",
           ...behindChapterStyle,
         }}
       >
@@ -1649,12 +1455,9 @@ export default function AtmosphereScrolly() {
             Altitude
           </div>
           <div style={{ fontSize: isPhone ? "22px" : "28px", color: "#fff", fontWeight: 600, fontFamily: "'Roboto Mono', monospace", lineHeight: 1.1 }}>
-            {currentKm < 1
-              ? (currentKm * 1000).toFixed(0) + " m"
-              : currentKm.toFixed(1) + " km"}
+            {currentKm < 1 ? `${(currentKm * 1000).toFixed(0)} m` : `${currentKm.toFixed(1)} km`}
           </div>
         </div>
-
         <div style={{ textAlign: isPhone ? "left" : "center", flex: isPhone ? "1 1 100%" : "0 1 auto", order: isPhone ? 3 : "initial", alignSelf: isPhone ? "flex-start" : "auto" }}>
           <div style={{ fontSize: isPhone ? "12px" : "13px", color: "rgba(255,255,255,0.48)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 3 }}>
             {currentLayer?.name || "Exosphere"}
@@ -1663,27 +1466,7 @@ export default function AtmosphereScrolly() {
             {formatTempWithF(Number(temp))} · {pressureStr}
           </div>
         </div>
-
         <div style={{ display: "flex", gap: 8, alignItems: "center", marginLeft: isPhone ? "auto" : 0 }}>
-          {/* Climate toggle — commented out
-          <button
-            onClick={() => setShowClimate(!showClimate)}
-            style={{
-              background: showClimate ? "rgba(255, 100, 50, 0.3)" : "rgba(255,255,255,0.1)",
-              border: showClimate ? "1px solid rgba(255, 100, 50, 0.5)" : "1px solid rgba(255,255,255,0.2)",
-              color: showClimate ? "#ff8855" : "rgba(255,255,255,0.6)",
-              padding: isPhone ? "6px 10px" : "6px 14px",
-              borderRadius: "20px",
-              fontSize: isPhone ? "12px" : "13px",
-              cursor: "pointer",
-              letterSpacing: "0.05em",
-              textTransform: "uppercase",
-              transition: "all 0.3s ease",
-            }}
-          >
-            {showClimate ? (isPhone ? "Climate On" : "🌡 Climate On") : "Climate"}
-          </button>
-          */}
           <button
             onClick={handleReset}
             className="reset-button"
@@ -1697,286 +1480,23 @@ export default function AtmosphereScrolly() {
               cursor: "pointer",
               letterSpacing: "0.05em",
               textTransform: "uppercase",
-              transition: "all 0.3s ease",
+              pointerEvents: "auto",
             }}
           >
             Reset
           </button>
         </div>
       </div>
-
-      {/* ─── Temp Profile (fixed, left edge) ─── */}
-      <div style={behindChapterStyle}>
-        <TempProfile
-          currentKm={currentKm}
-          showClimate={showClimate}
-          onDragAltitude={scrollToAltitude}
-          onDragStateChange={setIsTempDragging}
-          compact={isPhone}
-          fullHeight={isPhone}
-          topOffset={profileTopOffset}
-          availableHeight={profileAvailableHeight}
-        />
-      </div>
-
-      {/* ─── Scroll Container ─── */}
-      <div
-        ref={containerRef}
-        style={{
-          flex: 1,
-          overflowY: "scroll",
-          overflowX: "hidden",
-          WebkitOverflowScrolling: "touch",
-          background: bgColor,
-          transition: "background 0.15s ease",
-          position: "relative",
-          width: "100%",
-          ...behindChapterStyle,
-        }}
-      >
-        <div
-          style={{
-            height: totalHeight + "px",
-            position: "relative",
-            overflowX: "hidden",
-          }}
-        >
-          {/* ─── Ocean ─── */}
-          <div
-            style={{
-              position: "absolute",
-              bottom: 0,
-              left: 0,
-              right: 0,
-              height: oceanHeight + 24,
-              transform: "translateY(24px)",
-              background: "#0e4d6b",
-            }}
-          >
-          </div>
-
-          {/* ─── Intro text (below ocean) ─── */}
-          <div
-            style={{
-              position: "absolute",
-              bottom: 30,
-              left: isPhone ? "15vw" : 0,
-              right: 0,
-              textAlign: isPhone ? "left" : "center",
-              padding: isPhone ? "0 20px 0 0" : "0 20px",
-            }}
-          >
-            <div style={{ marginBottom: 10, fontSize: isPhone ? "44px" : "52px", lineHeight: 1, color: "rgba(140, 190, 210, 0.42)", animation: "pulse 2s ease-in-out infinite" }}>
-              ↑
-            </div>
-            <div style={{ fontSize: isPhone ? "16px" : "18px", color: "rgba(160, 210, 228, 0.76)", maxWidth: isPhone ? 260 : 460, margin: isPhone ? 0 : "0 auto", lineHeight: 1.65, fontFamily: "'Domine', Georgia, serif" }}>
-              You&apos;re at sea level. The atmosphere stretches above you for hundreds of kilometers. Scroll up through it.
-            </div>
-          </div>
-
-          {/* ─── Layer Backgrounds ─── */}
-          {layers.map((layer) => {
-            const bottom = altitudeToPixels(layer.startKm) + oceanHeight;
-            const height = altitudeToPixels(layer.endKm) - altitudeToPixels(layer.startKm);
-            return (
-              <div
-                key={layer.name}
-                style={{
-                  position: "absolute",
-                  bottom: bottom,
-                  height: height,
-                  left: 0,
-                  right: 0,
-                  background: layer.color,
-                  borderTop: "none",
-                }}
-              />
-            );
-          })}
-
-          {/* ─── Layer Labels (right side) ─── */}
-          {layers.map((layer) => {
-            const bottomPx = altitudeToPixels(layer.startKm) + oceanHeight;
-            const heightPx = altitudeToPixels(layer.endKm) - altitudeToPixels(layer.startKm);
-            const midKm = (layer.startKm + layer.endKm) / 2;
-            const subColor = getSubtextColor(midKm);
-            const layerOffset = getLayerLabelOffset(layer.name, isCompact, isPhone);
-            const labelBottom = bottomPx + 30 + layerOffset;
-            const descriptionBottom = labelBottom + (isPhone ? 52 : isCompact ? 76 : 94);
-            const textAnchorStyle = isPhone
-              ? { left: "15vw", right: "auto", textAlign: "left", maxWidth: 220 }
-              : { left: "auto", right: contentRight + 20, textAlign: "right", maxWidth: isCompact ? 190 : 240 };
-            return (
-              <div key={layer.name + "-label"}>
-                <div
-                  style={{
-                    position: "absolute",
-                    bottom: labelBottom,
-                    left: isPhone ? "15vw" : desktopLabelInset,
-                    right: isPhone ? "auto" : contentRight + 20,
-                    zIndex: layer.name === "Troposphere" ? 3 : 1,
-                    pointerEvents: "none",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: isPhone ? "34px" : isCompact ? "54px" : "72px",
-                      letterSpacing: "0.08em",
-                      textTransform: "uppercase",
-                      color: subColor,
-                      opacity: isPhone ? 0.34 : 0.32,
-                      fontWeight: 800,
-                      lineHeight: 0.95,
-                      textAlign: isPhone ? "left" : "right",
-                      whiteSpace: "nowrap",
-                      transform: "none",
-                      transformOrigin: "right bottom",
-                      textShadow: "0 0 18px rgba(0,0,0,0.18)",
-                    }}
-                  >
-                    {layer.name}
-                  </div>
-                </div>
-
-                <div
-                  style={{
-                    position: "absolute",
-                    bottom: descriptionBottom,
-                    zIndex: 9,
-                    ...textAnchorStyle,
-                  }}
-                >
-                  {/* {!isPhone && (
-                    <div style={{ fontSize: isCompact ? "13px" : "15px", color: subColor, lineHeight: 1.65, fontFamily: "'Open Sans', sans-serif", opacity: 0.82, fontWeight: 600 }}>
-                      {layer.description}
-                    </div>
-                  )} */}
-                  {/* Climate note — commented out
-                  {showClimate && layer.climateNote && (
-                    <div
-                      style={{
-                        fontSize: isPhone ? "14px" : "16px",
-                        color: "rgba(255, 150, 90, 0.92)",
-                        lineHeight: 1.6,
-                        marginTop: 8,
-                        padding: isPhone ? "8px 9px" : "10px 12px",
-                        background: "rgba(255, 100, 50, 0.08)",
-                        borderRadius: 6,
-                        borderLeft: "2px solid rgba(255, 100, 50, 0.3)",
-                        fontFamily: "'Domine', Georgia, serif",
-                        transition: "opacity 0.4s ease",
-                      }}
-                    >
-                      {layer.climateNote}
-                    </div>
-                  )}
-                  */}
-                </div>
-              </div>
-            );
-          })}
-
-          {/* ─── Landmark dashed lines ─── */}
-          {landmarks.map((lm) => {
-            if (lm.km === 0) return null; // skip sea level (has its own border)
-            const bottomPx = altitudeToPixels(lm.km) + oceanHeight;
-            const isMajorBoundary = Boolean(lm.isBoundary);
-            return (
-              <div
-                key={lm.label + "-line"}
-                style={{
-                  position: "absolute",
-                  bottom: bottomPx,
-                  left: 0,
-                  right: 0,
-                  height: isMajorBoundary ? 5 : 0,
-                  // Major: long custom dashes via gradient (border-top can't control dash length)
-                  ...(isMajorBoundary
-                    ? {
-                        backgroundImage: "repeating-linear-gradient(to right, rgba(255,255,255,0.88) 0px, rgba(255,255,255,0.88) 32px, transparent 32px, transparent 52px)",
-                        animation: "boundaryPulse 2.6s ease-in-out infinite",
-                      }
-                    : {
-                        borderTop: "3px dashed rgba(255,255,255,0.28)",
-                      }),
-                  pointerEvents: "none",
-                  zIndex: isMajorBoundary ? 5 : "auto",
-                }}
-              />
-            );
-          })}
-
-          {/* ─── Landmarks (left side) ─── */}
-          {landmarks.map((lm) => {
-            const bottomPx = altitudeToPixels(lm.km) + oceanHeight;
-            const lmTextColor = lm.km === 0 ? "rgba(235, 243, 248, 0.96)" : getTextColor(lm.km);
-            const lmSubColor = lm.km === 0 ? "rgba(214, 229, 238, 0.88)" : getSubtextColor(lm.km);
-            const landmarkOffset = getLandmarkOffset(lm.km, isCompact, isPhone);
-            const landmarkGap = isPhone ? 7 : 9;
-            const landmarkTop = totalHeight - bottomPx + landmarkGap;
-            return (
-              <div
-                key={lm.label}
-                style={{
-                  position: "absolute",
-                  top: landmarkTop,
-                  left: isPhone ? `calc(15vw + ${landmarkOffset}px)` : `${desktopLabelInset + landmarkOffset}px`,
-                  maxWidth: isPhone ? "58vw" : isCompact ? "42%" : "36%",
-                  zIndex: 8,
-                }}
-              >
-                <div>
-                  <div
-                    style={{
-                      fontSize: lm.isBoundary ? (isPhone ? "11px" : "13px") : isPhone ? "15px" : "18px",
-                      fontWeight: lm.isBoundary ? 400 : 600,
-                      color: lm.isBoundary ? lmSubColor : lmTextColor,
-                      letterSpacing: lm.isBoundary ? "0.1em" : "0",
-                      textTransform: lm.isBoundary ? "uppercase" : "none",
-                      lineHeight: isPhone ? 1.3 : 1.2,
-                    }}
-                  >
-                    {lm.label}
-                    <span style={{ display: "inline-block", fontSize: isPhone ? "11px" : "13px", color: lmSubColor, marginLeft: 8, fontWeight: 400 }}>
-                      {lm.km < 1 ? (lm.km * 1000).toFixed(0) + " m" : lm.km + " km"}
-                    </span>
-                  </div>
-                  <div style={{ fontSize: isPhone ? "12px" : isCompact ? "14px" : "16px", color: lmSubColor, marginTop: 3, lineHeight: isPhone ? 1.45 : 1.6, fontFamily: "'Domine', Georgia, serif" }}>
-                    {lm.detail}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-
-          <TroposphereClouds oceanHeight={oceanHeight} />
-          <OzoneMolecules oceanHeight={oceanHeight} />
-          <KilimanjaroComparison compact={isCompact} phone={isPhone} oceanHeight={oceanHeight} />
-          <MountainComparison compact={isCompact} phone={isPhone} oceanHeight={oceanHeight} />
-          <BurjComparison compact={isCompact} phone={isPhone} oceanHeight={oceanHeight} />
-          <CruisingPlanes currentKm={currentKm} topVisibleKm={topVisibleKm} oceanHeight={oceanHeight} />
-          <Stars />
-
-          <div
-            style={{
-              position: "absolute",
-              top: 60,
-              left: 0,
-              right: 0,
-              textAlign: "center",
-              color: "rgba(255,255,255,0.38)",
-              fontSize: isPhone ? "12px" : "13px",
-              letterSpacing: "0.15em",
-              textTransform: "uppercase",
-              padding: isPhone ? "0 56px" : "0 20px",
-            }}
-          >
-            ~550 km, the boundary blurs into space
-          </div>
-        </div>
-      </div>
-
-      {/* ─── Altitude ruler (right edge) ─── */}
+      <TempProfile
+        currentKm={currentKm}
+        showClimate={false}
+        onDragAltitude={scrollToAltitude}
+        onDragStateChange={setIsTempDragging}
+        compact={isPhone}
+        fullHeight={isPhone}
+        topOffset={profileTopOffset}
+        availableHeight={profileAvailableHeight}
+      />
       {showRuler && (
         <AltitudeRuler
           currentKm={currentKm}
@@ -1988,44 +1508,54 @@ export default function AtmosphereScrolly() {
           width={overlayWidth}
         />
       )}
-
+      <div
+        ref={rootRef}
+        style={{
+          position: "relative",
+          height: `${maxTravelPx + viewport.height}px`,
+          background: "#000",
+        }}
+      >
+        <div
+          style={{
+            position: "sticky",
+            top: 0,
+            height: "100svh",
+            overflow: "hidden",
+            background: bgColor,
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              overflow: "hidden",
+              ...behindChapterStyle,
+            }}
+          >
+            <div
+              style={{
+                height: totalHeight,
+                position: "relative",
+                overflowX: "hidden",
+                transform: `translateY(-${sceneOffsetPx}px)`,
+                willChange: "transform",
+              }}
+            >
+              <StaticAtmosphereScene
+                oceanHeight={oceanHeight}
+                totalHeight={totalHeight}
+                isPhone={isPhone}
+                isCompact={isCompact}
+                contentRight={contentRight}
+                desktopLabelInset={desktopLabelInset}
+              />
+              <CruisingPlanes currentKm={currentKm} topVisibleKm={topVisibleKm} oceanHeight={oceanHeight} />
+            </div>
+          </div>
+        </div>
+      </div>
       <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 0.3; transform: translateY(0); }
-          50% { opacity: 0.7; transform: translateY(-6px); }
-        }
-        @keyframes oceanDrift {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
-        }
-        @keyframes boundaryPulse {
-          0%, 100% { opacity: 0.45; filter: drop-shadow(0 0 3px rgba(255,255,255,0.3)); }
-          50% { opacity: 1; filter: drop-shadow(0 0 10px rgba(255,255,255,0.9)) drop-shadow(0 0 20px rgba(180,210,255,0.5)); }
-        }
-        @keyframes layerPulse {
-          0%, 100% { opacity: 0.1; filter: brightness(1); }
-          50% { opacity: 0.15; filter: brightness(0.72); }
-        }
-        @keyframes planeFlyby {
-          0% { transform: translateX(0) translateY(0) rotate(45deg); opacity: 0.78; }
-          50% { transform: translateX(62vw) translateY(-6px) rotate(45deg); opacity: 0.82; }
-          92% { opacity: 0.78; }
-          100% { transform: translateX(122vw) translateY(-10px) rotate(45deg); opacity: 0; }
-        }
-        @keyframes cloudDrift {
-          0% { transform: translateX(-50%) translate3d(-12vw, 0, 0); }
-          50% { transform: translateX(-50%) translate3d(4vw, -4px, 0); }
-          100% { transform: translateX(-50%) translate3d(20vw, -2px, 0); }
-        }
-        @keyframes ozoneDrift {
-          0% { transform: translateX(-50%) translate3d(-6px, 8px, 0); }
-          50% { transform: translateX(-50%) translate3d(10px, -10px, 0); }
-          100% { transform: translateX(-50%) translate3d(-4px, 6px, 0); }
-        }
-        @keyframes twinkle {
-          0%, 100% { opacity: var(--base-opacity, 0.3); }
-          50% { opacity: 0.05; }
-        }
         .reset-button:active {
           background: rgba(255,255,255,0.18) !important;
           border-color: rgba(255,255,255,0.32) !important;
@@ -2034,6 +1564,6 @@ export default function AtmosphereScrolly() {
         * { scrollbar-width: none; }
         *::-webkit-scrollbar { display: none; }
       `}</style>
-    </div>
+    </>
   );
 }
