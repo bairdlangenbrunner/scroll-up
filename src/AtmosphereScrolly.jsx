@@ -138,8 +138,9 @@ const CHAPTER_BREAKS = {
     lines: [
       "You've reached the mesopause, at about 85 km.",
       "This is the coldest point in the atmosphere.",
-      "Like the troposphere, the mesosphere's temperature decreases with height, allowing for mixing.",
-      "Shooting stars burn up here, bits of cosmic debris incinerated by friction with the thin remaining air.",
+      "Like the troposphere, the mesosphere's temperature decreased with height, allowing for mixing.",
+      "Now we're in the thermosphere, where temperatures increase with height dramatically as sparse gas molecules absorb solar energy.",
+      "Shooting stars burn up here, as bits of cosmic debris are incinerated by friction with the thin remaining air.",
       "Above this line, the rules change. Molecules are so sparse that temperature loses its everyday meaning.",
     ],
   },
@@ -524,15 +525,15 @@ function TempProfile({ currentKm, showClimate, onDragAltitude, onDragStateChange
                   y1={kmToY(km)}
                   x2={svgWidth}
                   y2={kmToY(km)}
-                  stroke="rgba(255,225,160,0.42)"
-                  strokeWidth="1.2"
+                  stroke="rgba(255,225,160,1)"
+                  strokeWidth="0.9"
                 />
               ))}
 
               <text
                 x={svgWidth / 2}
                 y={headerBand}
-                fill="rgba(255,255,255,0.52)"
+                fill="rgb(216, 220, 226)"
                 fontSize="12"
                 fontFamily="'Roboto Mono', monospace"
                 letterSpacing="1.2"
@@ -544,7 +545,7 @@ function TempProfile({ currentKm, showClimate, onDragAltitude, onDragStateChange
               <text
                 x={padding.left + 7}
                 y={svgHeight / 2}
-                fill="rgba(255,255,255,0.34)"
+                fill="rgb(198, 202, 210)"
                 fontSize="12"
                 fontFamily="'Roboto Mono', monospace"
                 letterSpacing="0.8"
@@ -556,7 +557,7 @@ function TempProfile({ currentKm, showClimate, onDragAltitude, onDragStateChange
               <text
                 x={svgWidth - padding.right - 7}
                 y={svgHeight / 2}
-                fill="rgba(255,255,255,0.34)"
+                fill="rgb(198, 202, 210)"
                 fontSize="12"
                 fontFamily="'Roboto Mono', monospace"
                 letterSpacing="0.8"
@@ -588,8 +589,8 @@ function TempProfile({ currentKm, showClimate, onDragAltitude, onDragStateChange
                   y1={y}
                   x2={svgWidth}
                   y2={y}
-                  stroke="rgba(255,225,160,0.85)"
-                  strokeWidth="1.2"
+                  stroke="rgba(255,225,160,1)"
+                  strokeWidth="0.9"
                   strokeLinecap="round"
                 />
               );
@@ -659,7 +660,7 @@ function TempProfile({ currentKm, showClimate, onDragAltitude, onDragStateChange
 function AltitudeRuler({ currentKm, onDragAltitude, onDragStateChange, compact, topOffset, availableHeight, width }) {
   const rulerRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
-  const rulerTicks = [0, 10, 20, 50, 85, 100, 200, 300, 400, 500];
+  const rulerTicks = [0, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500, 550];
   const rulerHeight = Math.max(availableHeight, 420); // same floor as TempProfile
   const rulerWidth = width ?? (compact ? 68 : 90);
   const rulerInset = compact ? 14 : 16;  // bottom inset + tick left anchor
@@ -671,7 +672,7 @@ function AltitudeRuler({ currentKm, onDragAltitude, onDragStateChange, compact, 
         km,
         bottomOffset: (km / MAX_ALTITUDE_KM) * trackH + rulerInset,
         isChapter: CHAPTER_BREAK_KMS.includes(km),
-      })),
+      })).filter((node) => ![10, 20, 85].includes(node.km)),
     [trackH, rulerInset]
   );
 
@@ -768,11 +769,11 @@ function AltitudeRuler({ currentKm, onDragAltitude, onDragStateChange, compact, 
         <div
           style={{
             position: "absolute",
-            left: compact ? 13 : 16,
+            right: compact ? 13 : 16,
             top: trackTopY,
             bottom: rulerInset,
             width: 2,
-            background: "rgba(255,255,255,0.18)",
+            background: "rgb(208, 212, 218)",
           }}
         />
 
@@ -787,7 +788,7 @@ function AltitudeRuler({ currentKm, onDragAltitude, onDragStateChange, compact, 
                 right: 0,
                 bottom: bottomOffset,
                 height: 0,
-                borderTop: "1.2px solid rgba(255,225,160,0.42)",
+                borderTop: "0.9px solid rgba(255,225,160,1)",
                 pointerEvents: "none",
               }}
             />
@@ -795,47 +796,50 @@ function AltitudeRuler({ currentKm, onDragAltitude, onDragStateChange, compact, 
         })}
 
         {graphNodes.map((node) => (
-          <div
-            key={`ruler-node-${node.km}`}
-            style={{
-              position: "absolute",
-              bottom: node.bottomOffset,
-              left: compact ? 14 : 17,
-              width: 7,
-              height: 7,
-              borderRadius: "50%",
-              background: node.isChapter ? "rgba(170,220,255,0.96)" : "rgba(255,255,255,0.72)",
-              border: "1px solid rgba(255,255,255,0.55)",
-              transform: "translate(-50%, 50%)",
-              pointerEvents: "none",
-              boxShadow: node.isChapter ? "0 0 0 2px rgba(70,120,180,0.2)" : "none",
-            }}
-          />
+            <div
+              key={`ruler-node-${node.km}`}
+              style={{
+                position: "absolute",
+                bottom: node.bottomOffset,
+                right: compact ? 14 : 17,
+                width: 7,
+                height: 7,
+                borderRadius: "50%",
+                background: node.isChapter ? "rgba(170,220,255,0.96)" : "rgba(255,255,255,0.72)",
+                border: "1px solid rgba(255,255,255,0.55)",
+                transform: "translate(50%, 50%)",
+                pointerEvents: "none",
+                boxShadow: node.isChapter ? "0 0 0 2px rgba(70,120,180,0.2)" : "none",
+              }}
+            />
         ))}
 
         {rulerTicks.map((km) => {
           const bottomOffset = (km / MAX_ALTITUDE_KM) * trackH + rulerInset;
           const isMajor = km === 0 || km === 100 || km === 200 || km === 400;
           return (
-            <div key={km} style={{ position: "absolute", bottom: bottomOffset, left: compact ? 13 : 16, transform: "translateY(50%)" }}>
+            <div key={km} style={{ position: "absolute", bottom: bottomOffset, left: 0, right: 0, transform: "translateY(50%)" }}>
               <div
                 style={{
                   width: isMajor ? 12 : 8,
                   height: 2,
-                  background: isMajor ? "rgba(255,255,255,0.38)" : "rgba(255,255,255,0.22)",
+                  background: "rgb(208, 212, 218)",
+                  marginLeft: "auto",
+                  marginRight: compact ? 13 : 16,
                 }}
               />
               <div
                 style={{
                   position: "absolute",
-                  left: isMajor ? 16 : 12,
+                  left: "40%",
                   top: "50%",
-                  transform: "translateY(-50%)",
+                  transform: "translate(-50%, -50%)",
                   fontSize: isMajor ? (compact ? "12px" : "13px") : (compact ? "12px" : "13px"),
                   lineHeight: 1,
                   fontFamily: "'Roboto Mono', monospace",
-                  color: isMajor ? "rgba(255,255,255,0.56)" : "rgba(255,255,255,0.38)",
+                  color: "rgb(206, 210, 216)",
                   whiteSpace: "nowrap",
+                  textAlign: "center",
                 }}
               >
                 {km} km
@@ -848,8 +852,8 @@ function AltitudeRuler({ currentKm, onDragAltitude, onDragStateChange, compact, 
           style={{
             position: "absolute",
             bottom: Math.min(1, currentKm / MAX_ALTITUDE_KM) * trackH + rulerInset,
-            left: compact ? 14 : 17,
-            transform: "translate(-50%, 50%)",
+            right: compact ? 14 : 17,
+            transform: "translate(50%, 50%)",
             width: 0,
             height: 0,
           }}
@@ -896,7 +900,7 @@ function AltitudeRuler({ currentKm, onDragAltitude, onDragStateChange, compact, 
             textAlign: "center",
             fontSize: "12px",
             fontFamily: "'Roboto Mono', monospace",
-            color: "rgba(255,255,255,0.52)",
+            color: "rgb(214, 218, 224)",
             letterSpacing: "1.2px",
             textTransform: "uppercase",
             lineHeight: 1,
