@@ -289,7 +289,7 @@ function getLayerLabelOffset(layerName, compact, phone) {
 }
 
 function getBoundaryLabelGap(layerName, compact, phone) {
-  return (phone ? 24 : 30) + getLayerLabelOffset(layerName, compact, phone);
+  return 24 + getLayerLabelOffset(layerName, compact, phone);
 }
 
 function getBoundaryDescriptionOffset(compact, phone) {
