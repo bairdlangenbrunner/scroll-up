@@ -61,6 +61,16 @@ const layers = [
   },
 ];
 
+const boundaryLayerPairs = {
+  500: {
+    upper: "Exosphere",
+    lower: "Thermosphere",
+    upperColorKm: 525,
+    lowerColorKm: 300,
+    upperOffsetName: "Thermosphere",
+  },
+};
+
 const landmarks = [
   { km: 0, label: "Sea level", detail: "1013 hPa · 15°C (59°F)" },
   { km: 0.8, label: "Burj Khalifa", detail: "The tallest building on Earth (828 m)" },
@@ -89,7 +99,7 @@ const landmarks = [
   { km: 300, label: "Auroral peak activity", detail: "Some of the brightest auroral curtains and arcs form in this altitude range" },
   { km: 325, label: "Red aurora crown", detail: "The deep crimson glow at the top of tall auroral rays forms here; oxygen atoms, energized by solar electrons, radiate at 630 nm before slowly cooling" },
   { km: 350, label: "Orbital drag still matters", detail: "Even here, trace atmosphere steadily slows satellites unless they boost their orbit" },
-  { km: 375, label: "Still falling", detail: "Gravity here is about 88% of surface gravity; astronauts feel weightless not because gravity is absent, but because they are in continuous free fall around Earth, always falling, never landing" },
+  { km: 375, label: "Gravity persists", detail: "Gravity here is still about 88% of surface gravity. Astronauts feel weightless not because gravity disappears, but because they and their spacecraft are both in continuous free fall around Earth." },
   { km: 408, label: "International Space Station", detail: "Orbiting at ~408 km, still technically in the atmosphere" },
   { km: 425, label: "Polar orbit band", detail: "Polar-orbiting satellites here circle Earth from pole to pole every ~93 minutes, scanning the entire planet's surface within 24 hours; most weather and Earth-observation satellites operate in this band" },
   { km: 450, label: "Air too thin for weather", detail: "There are still particles here, but the atmosphere is now far too sparse for clouds, winds, or anything resembling ordinary weather" },
@@ -108,20 +118,24 @@ const CHAPTER_BREAKS = {
       "Welcome to the troposphere. This is the lowest layer (the first 10–12 km) of the atmosphere.",
       "As you climb up, temperature decreases, so warmer, less dense air sits under colder, denser air. This leads to convection, like a lava lamp.",
       "This convection means that the troposphere is where almost all weather occurs: clouds, rain, turbulence, storms.",
+      "The troposphere is also where we live, and where the air is thickest. At sea level, the average pressure is 1013 hPa (hectopascals), and the average temperature is about 15°C (59°F).",
+      "Layers of the atmosphere have wavy and moving boundaries that shift with latitude, season, and solar activity, but they are primarily distinguished by whether temperature rises or falls with height.",
     ],
   },
   12: {
     lines: [
       "You've reached the tropopause, at about 12 km.",
-      "Below this height, it gets colder with altitude. Warm air rises, cold air sinks, and the atmosphere churns.",
-      "Above it is the stratosphere. Temperature starts to increase with height, so colder, denser air sits below warmer air above.",
+      "This is the top of the troposphere and the boundary to the stratosphere above.",
+      "Below the tropopause, it gets colder with altitude. Warm air rises, cold air sinks, and the atmosphere churns.",
+      "In the stratosphere, temperature now increases with height, so colder, denser air sits below warmer air above.",
       "This means air is stratified, and doesn't naturally churn or convect.",
       "Planes fly near these altitudes because there's far less turbulence. But it's still incredibly windy up here. ",
     ],
   },
   25: {
     lines: [
-      "At these altitudes, ozone is good. It absorbs ultraviolet radiation from the sun, acting like sunscreen for life on Earth.",
+      "At Earth's surface, ozone is a pollutant that can damage lung tissue, and it is a major component of smog.",
+      "But at these altitudes, ozone is good. It absorbs ultraviolet radiation from the sun, acting like sunscreen for life on Earth.",
       "The 1987 Montreal Protocol phased out ozone-depleting chemicals once common in aerosol cans and refrigeration, and the ozone layer has been gradually recovering.",
       "It remains a rare example of coordinated global action reducing environmental harm before the worst outcomes became permanent.",
     ],
@@ -129,27 +143,30 @@ const CHAPTER_BREAKS = {
   50: {
     lines: [
       "You've reached the stratopause, at about 50 km.",
-      "You just passed through the ozone layer, a thin veil of O₃ that absorbs the sun's ultraviolet radiation.",
-      "That absorption is why temperatures rose through the stratosphere.",
+      "This is the boundary between the stratosphere below and the mesosphere above.",
+      "In the stratosphere, temperature increased with height, while in the mesosphere, it will decrease again.",
+      "At this point, we've passed through the full ozone layer, a thin veil of ozone that absorbs the sun's ultraviolet radiation.",
+      "That absorption from ozone alone is why temperatures rose through the stratosphere.",
       "Above here, without ozone to capture sunlight, temperatures plummet again.",
     ],
   },
   85: {
     lines: [
       "You've reached the mesopause, at about 85 km.",
+      "The mesopause separates the mesosphere below from the thermosphere above.",
       "This is the coldest point in the atmosphere.",
       "Like the troposphere, the mesosphere's temperature decreased with height, allowing for mixing.",
-      "Now we're in the thermosphere, where temperatures increase with height dramatically as sparse gas molecules absorb solar energy.",
-      "Shooting stars burn up here, as bits of cosmic debris are incinerated by friction with the thin remaining air.",
-      "Above this line, the rules change. Molecules are so sparse that temperature loses its everyday meaning.",
+      "Now, in the thermosphere, temperatures increase with height dramatically as sparse gas molecules absorb solar energy.",
+      "Shooting stars burn up at these altitudes, as bits of cosmic debris are incinerated by friction with the thin remaining air.",
+      "Above these heights, the rules change. Molecules are so sparse that temperature loses its everyday meaning.",
     ],
   },
   100: {
     lines: [
       "You've crossed the Kármán line, 100 km up.",
       "This is the internationally recognized boundary of space.",
-      "Below here, aerodynamics works. Above here, only orbital mechanics matter.",
-      "And yet, the atmosphere doesn't truly end. It just fades out exponentially.",
+      "Below here, aerodynamics works. Above here, orbital mechanics are what matter most.",
+      "And yet the atmosphere doesn't truly end; it just fades out exponentially.",
     ],
   },
   250: {
@@ -165,7 +182,8 @@ const CHAPTER_BREAKS = {
   },
   500: {
     lines: [
-      "You've reached the thermopause — the top of the thermosphere, around 500 km up.",
+      "You've reached the thermopause, around 500 km up.",
+      "It separates the thermosphere below from the exosphere above.",
       "Its height shifts depending on solar activity, from about 200 km during quiet sun conditions to about 500 km when the sun is more active.",
       "Like all of these boundaries, it's more of a moving frontier than a fixed shell."
     ],
@@ -231,13 +249,15 @@ function getBackgroundColor(km) {
 }
 
 function getTextColor(km) {
-  if (km < 20) return "rgba(30, 40, 80, 0.9)";
+  if (km < 12) return "rgba(30, 40, 80, 0.9)";
+  if (km < 20) return "rgba(232, 239, 252, 0.96)";
   if (km < 50) return "rgba(200, 210, 240, 0.9)";
   return "rgba(220, 225, 245, 0.9)";
 }
 
 function getSubtextColor(km) {
-  if (km < 20) return "rgba(80, 90, 120, 0.75)";
+  if (km < 12) return "rgba(80, 90, 120, 0.75)";
+  if (km < 20) return "rgba(210, 220, 240, 0.9)";
   if (km < 50) return "rgba(160, 170, 200, 0.7)";
   return "rgba(180, 185, 210, 0.65)";
 }
@@ -266,6 +286,22 @@ function getLayerLabelOffset(layerName, compact, phone) {
   }
 
   return 0;
+}
+
+function getBoundaryLabelGap(layerName, compact, phone) {
+  return (phone ? 14 : 30) + getLayerLabelOffset(layerName, compact, phone);
+}
+
+function getBoundaryDescriptionOffset(compact, phone) {
+  if (phone) return 52;
+  if (compact) return 76;
+  return 94;
+}
+
+function getBoundaryTextBlockHeight(compact, phone) {
+  if (phone) return 42;
+  if (compact) return 48;
+  return 54;
 }
 
 function getLandmarkOffset(km, compact, phone) {
@@ -1176,30 +1212,25 @@ function PixelSatellite({
 }) {
   const width = 68 * scale;
   const height = 36 * scale;
+  const startPct = typeof left === "string" && left.endsWith("%") ? Number.parseFloat(left) : 50;
+  const durationSeconds = Number.parseFloat(duration) || 18;
+  const phaseDelay = -((startPct / 100) * durationSeconds);
 
   return (
     <div
       style={{
         position: "absolute",
-        left,
+        left: -width,
         bottom: altitudeToPixels(km) + oceanHeight,
         width,
         height,
-        transform: "translateX(-50%)",
-        transformOrigin: "center",
         pointerEvents: "none",
         zIndex: 4,
         opacity,
-        animation: `satellite-orbit ${duration} linear infinite`,
-        animationDelay: delay,
+        animation: `driftRight ${duration} linear infinite`,
+        animationDelay: `${(phaseDelay + (Number.parseFloat(delay) || 0)).toFixed(1)}s`,
       }}
     >
-      <style>{`
-        @keyframes satellite-orbit {
-          0% { transform: translateX(-50%) translateX(-12vw); }
-          100% { transform: translateX(-50%) translateX(12vw); }
-        }
-      `}</style>
       <svg
         width={width}
         height={height}
@@ -1259,16 +1290,19 @@ function PolarOrbitSatellites({ oceanHeight }) {
 }
 
 function PixelRadiationSign({ oceanHeight }) {
-  const gridSize = 46;
-  const pixel = 1.9;
-  const center = gridSize / 2;
-  const scale = gridSize / 25;
-  const outerRadius = 11.9 * scale;
-  const innerRadius = 10.0 * scale;
-  const coreRadius = 2.85 * scale;
-  const bladeInnerRadius = 4.45 * scale;
-  const bladeOuterRadius = 8.95 * scale;
-  const bladeAngles = [-90, 30, 150];
+  // gridSize=41, pixel=2 → 82×82px display, each "pixel" is a 2×2 block for clear pixel art
+  const gridSize = 41;
+  const pixel = 2;
+  const center = gridSize / 2; // 20.5 — sample from center of each cell
+
+  // Standard ISO radiation trefoil proportions
+  const R = 20;           // outer circle radius (in logical pixels)
+  const innerRing = 17.1; // start of outer dark ring
+  const bladeOuter = 14.8; // blade outer edge — yellow gap to ring
+  const bladeInner = 6.8; // blade inner edge — yellow gap to core
+  const core = 3.3;       // central dot radius
+  const bladeAngles = [-90, 30, 150]; // up, lower-right, lower-left
+  const halfAngle = 30;   // 60° wide blades (ISO standard)
 
   const angleDiff = (a, b) => {
     const diff = Math.abs(a - b) % 360;
@@ -1277,43 +1311,28 @@ function PixelRadiationSign({ oceanHeight }) {
 
   const pixels = [];
 
-  for (let y = 0; y < gridSize; y += 1) {
-    for (let x = 0; x < gridSize; x += 1) {
+  for (let y = 0; y < gridSize; y++) {
+    for (let x = 0; x < gridSize; x++) {
       const dx = x + 0.5 - center;
       const dy = y + 0.5 - center;
-      const distance = Math.hypot(dx, dy);
+      const r = Math.hypot(dx, dy);
 
       let fill = null;
 
-      if (distance <= outerRadius) {
-        fill = "#ffef1f";
-      }
+      if (r <= R) fill = "#ffef1f";
+      if (r > innerRing && r <= R) fill = "#11151b";
 
-      if (distance <= outerRadius && distance > innerRadius) {
-        fill = "#11151b";
-      }
-
-      if (distance <= bladeOuterRadius && distance >= bladeInnerRadius) {
+      if (r >= bladeInner && r <= bladeOuter) {
         const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
-        const inBlade = bladeAngles.some((bladeAngle) => angleDiff(angle, bladeAngle) <= 24);
-        if (inBlade) fill = "#11151b";
+        if (bladeAngles.some((a) => angleDiff(angle, a) <= halfAngle)) fill = "#11151b";
       }
 
-      if (distance <= coreRadius) {
-        fill = "#11151b";
-      }
+      if (r <= core) fill = "#11151b";
 
       if (!fill) continue;
 
       pixels.push(
-        <rect
-          key={`${x}-${y}`}
-          x={x * pixel}
-          y={y * pixel}
-          width={pixel}
-          height={pixel}
-          fill={fill}
-        />
+        <rect key={`${x}-${y}`} x={x * pixel} y={y * pixel} width={pixel} height={pixel} fill={fill} />
       );
     }
   }
@@ -1970,23 +1989,22 @@ function OzoneMolecules({ oceanHeight }) {
           >
             <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} shapeRendering="crispEdges" aria-hidden="true">
               <g fill="#4c86b5">
-                {/* O */}
-                <rect x={0} y={2 * pixel} width={1 * pixel} height={6 * pixel} />
-                <rect x={1 * pixel} y={1 * pixel} width={5 * pixel} height={1 * pixel} />
+                {/* O — top bar, left/right sides, bottom bar */}
+                <rect x={1 * pixel} y={0 * pixel} width={5 * pixel} height={1 * pixel} />
+                <rect x={0 * pixel} y={1 * pixel} width={1 * pixel} height={7 * pixel} />
+                <rect x={6 * pixel} y={1 * pixel} width={1 * pixel} height={7 * pixel} />
                 <rect x={1 * pixel} y={8 * pixel} width={5 * pixel} height={1 * pixel} />
-                <rect x={6 * pixel} y={2 * pixel} width={1 * pixel} height={6 * pixel} />
 
-                {/* 3 as subscript */}
-                <rect x={10 * pixel} y={6 * pixel} width={3 * pixel} height={1 * pixel} />
-                <rect x={12 * pixel} y={7 * pixel} width={1 * pixel} height={2 * pixel} />
-                <rect x={10 * pixel} y={9 * pixel} width={2 * pixel} height={1 * pixel} />
-                <rect x={12 * pixel} y={10 * pixel} width={1 * pixel} height={2 * pixel} />
-                <rect x={10 * pixel} y={12 * pixel} width={3 * pixel} height={1 * pixel} />
+                {/* 3 as subscript (4×5px, rows 7–11) */}
+                <rect x={9 * pixel} y={7 * pixel} width={4 * pixel} height={1 * pixel} />
+                <rect x={12 * pixel} y={8 * pixel} width={1 * pixel} height={1 * pixel} />
+                <rect x={10 * pixel} y={9 * pixel} width={3 * pixel} height={1 * pixel} />
+                <rect x={12 * pixel} y={10 * pixel} width={1 * pixel} height={1 * pixel} />
+                <rect x={9 * pixel} y={11 * pixel} width={4 * pixel} height={1 * pixel} />
               </g>
 
               <g fill="#bfe5ff">
                 <rect x={2 * pixel} y={2 * pixel} width={1 * pixel} height={1 * pixel} />
-                <rect x={10 * pixel} y={7 * pixel} width={1 * pixel} height={1 * pixel} />
               </g>
             </svg>
           </div>
@@ -2177,6 +2195,30 @@ const StaticAtmosphereScene = memo(function StaticAtmosphereScene({
   hudHeight,
   viewportHeight,
 }) {
+  const boundaryTextRefs = useRef(new Map());
+  const [boundaryTextHeights, setBoundaryTextHeights] = useState({});
+
+  useEffect(() => {
+    const nextHeights = {};
+    boundaryTextRefs.current.forEach((node, key) => {
+      if (node) {
+        nextHeights[key] = node.getBoundingClientRect().height;
+      }
+    });
+
+    setBoundaryTextHeights((prev) => {
+      const prevKeys = Object.keys(prev);
+      const nextKeys = Object.keys(nextHeights);
+      if (
+        prevKeys.length === nextKeys.length &&
+        nextKeys.every((key) => Math.abs((prev[key] ?? 0) - nextHeights[key]) < 1)
+      ) {
+        return prev;
+      }
+      return nextHeights;
+    });
+  }, [isPhone, isCompact, totalHeight, contentRight, desktopLabelInset, viewportHeight]);
+
   return (
     <>
       {/* ─── Ocean ─── */}
@@ -2205,7 +2247,7 @@ const StaticAtmosphereScene = memo(function StaticAtmosphereScene({
         <div style={{ marginBottom: 10, fontSize: isPhone ? "44px" : "52px", lineHeight: 1, color: "rgba(140, 190, 210, 0.42)" }}>
           ↑
         </div>
-        <div style={{ fontSize: isPhone ? "16px" : "18px", color: "rgba(160, 210, 228, 0.76)", maxWidth: isPhone ? 260 : 460, margin: isPhone ? 0 : "0 auto", lineHeight: 1.65, fontFamily: "'Roboto Mono', monospace" }}>
+        <div style={{ fontSize: isPhone ? "16px" : "18px", color: "rgba(160, 210, 228, 0.76)", maxWidth: isPhone ? 260 : 460, margin: isPhone ? 0 : "0 auto", lineHeight: 1.35, fontFamily: "'Roboto Mono', monospace" }}>
           You&apos;re at sea level. The atmosphere stretches above you for hundreds of kilometers. Scroll up through it.
         </div>
       </div>
@@ -2235,9 +2277,17 @@ const StaticAtmosphereScene = memo(function StaticAtmosphereScene({
         const bottomPx = altitudeToPixels(layer.startKm) + oceanHeight;
         const midKm = (layer.startKm + layer.endKm) / 2;
         const subColor = getSubtextColor(midKm);
-        const layerOffset = getLayerLabelOffset(layer.name, isCompact, isPhone);
-        const labelBottom = bottomPx + 30 + layerOffset;
-        const descriptionBottom = labelBottom + (isPhone ? 52 : isCompact ? 76 : 94);
+        const lowerLayer = layers.find((candidate) => candidate.endKm === layer.startKm);
+        const lowerLayerMidKm = lowerLayer ? (lowerLayer.startKm + lowerLayer.endKm) / 2 : null;
+        const lowerLayerColor = lowerLayerMidKm === null ? null : getSubtextColor(lowerLayerMidKm);
+        const labelGap = getBoundaryLabelGap(layer.name, isCompact, isPhone);
+        const labelBottom = bottomPx + labelGap;
+        const landmarkGap = isPhone ? 7 : 9;
+        const boundaryTextTop = totalHeight - bottomPx + landmarkGap;
+        const boundaryTextHeight = boundaryTextHeights[layer.startKm] ?? getBoundaryTextBlockHeight(isCompact, isPhone);
+        const lowerLabelTop = boundaryTextTop + boundaryTextHeight + labelGap;
+        const descriptionOffset = getBoundaryDescriptionOffset(isCompact, isPhone);
+        const descriptionBottom = labelBottom + descriptionOffset;
         const textAnchorStyle = isPhone
           ? { left: "15vw", right: "auto", textAlign: "left", maxWidth: 220 }
           : { left: "auto", right: contentRight + 20, textAlign: "right", maxWidth: isCompact ? 190 : 240 };
@@ -2273,6 +2323,38 @@ const StaticAtmosphereScene = memo(function StaticAtmosphereScene({
               </div>
             </div>
 
+            {lowerLayer ? (
+              <div
+                style={{
+                  position: "absolute",
+                  top: lowerLabelTop,
+                  left: isPhone ? "15vw" : desktopLabelInset,
+                  right: isPhone ? "auto" : contentRight + 20,
+                  zIndex: 1,
+                  pointerEvents: "none",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: isPhone ? "34px" : isCompact ? "54px" : "72px",
+                    letterSpacing: "0.08em",
+                    textTransform: "uppercase",
+                    color: lowerLayerColor,
+                    opacity: isPhone ? 0.24 : 0.22,
+                    fontWeight: 800,
+                    lineHeight: 0.82,
+                    textAlign: isPhone ? "left" : "right",
+                    whiteSpace: "nowrap",
+                    margin: 0,
+                    padding: 0,
+                    textShadow: "0 0 18px rgba(0,0,0,0.18)",
+                  }}
+                >
+                  {lowerLayer.name}
+                </div>
+              </div>
+            ) : null}
+
             <div
               style={{
                 position: "absolute",
@@ -2281,6 +2363,81 @@ const StaticAtmosphereScene = memo(function StaticAtmosphereScene({
                 ...textAnchorStyle,
               }}
             />
+          </div>
+        );
+      })}
+
+      {Object.entries(boundaryLayerPairs).map(([kmValue, pair]) => {
+        const km = Number(kmValue);
+        const bottomPx = altitudeToPixels(km) + oceanHeight;
+        const upperLabelGap = getBoundaryLabelGap(pair.upperOffsetName, isCompact, isPhone);
+        const upperLabelBottom = bottomPx + upperLabelGap;
+        const landmarkGap = isPhone ? 7 : 9;
+        const boundaryTextTop = totalHeight - bottomPx + landmarkGap;
+        const boundaryTextHeight = boundaryTextHeights[km] ?? getBoundaryTextBlockHeight(isCompact, isPhone);
+        const lowerLabelTop = boundaryTextTop + boundaryTextHeight + upperLabelGap;
+        const upperColor = getSubtextColor(pair.upperColorKm);
+        const lowerColor = getSubtextColor(pair.lowerColorKm);
+
+        return (
+          <div key={`boundary-pair-${km}`}>
+            <div
+              style={{
+                position: "absolute",
+                bottom: upperLabelBottom,
+                left: isPhone ? "15vw" : desktopLabelInset,
+                right: isPhone ? "auto" : contentRight + 20,
+                zIndex: 1,
+                pointerEvents: "none",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: isPhone ? "34px" : isCompact ? "54px" : "72px",
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  color: upperColor,
+                  opacity: isPhone ? 0.34 : 0.32,
+                  fontWeight: 800,
+                  lineHeight: 0.95,
+                  textAlign: isPhone ? "left" : "right",
+                  whiteSpace: "nowrap",
+                  textShadow: "0 0 18px rgba(0,0,0,0.18)",
+                }}
+              >
+                {pair.upper}
+              </div>
+            </div>
+
+            <div
+              style={{
+                position: "absolute",
+                top: lowerLabelTop,
+                left: isPhone ? "15vw" : desktopLabelInset,
+                right: isPhone ? "auto" : contentRight + 20,
+                zIndex: 1,
+                pointerEvents: "none",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: isPhone ? "34px" : isCompact ? "54px" : "72px",
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  color: lowerColor,
+                  opacity: isPhone ? 0.24 : 0.22,
+                  fontWeight: 800,
+                  lineHeight: 0.82,
+                  textAlign: isPhone ? "left" : "right",
+                  whiteSpace: "nowrap",
+                  margin: 0,
+                  padding: 0,
+                  textShadow: "0 0 18px rgba(0,0,0,0.18)",
+                }}
+              >
+                {pair.lower}
+              </div>
+            </div>
           </div>
         );
       })}
@@ -2301,7 +2458,7 @@ const StaticAtmosphereScene = memo(function StaticAtmosphereScene({
               height: isMajorBoundary ? 5 : 0,
               ...(isMajorBoundary
                 ? {
-                    backgroundImage: "repeating-linear-gradient(to right, rgba(255,255,255,0.88) 0px, rgba(255,255,255,0.88) 32px, transparent 32px, transparent 52px)",
+                    backgroundImage: "repeating-linear-gradient(to right, rgba(255,225,160,1) 0px, rgba(255,225,160,1) 32px, transparent 32px, transparent 52px)",
                   }
                 : {
                     borderTop: "3px dashed rgba(255,255,255,0.28)",
@@ -2331,15 +2488,24 @@ const StaticAtmosphereScene = memo(function StaticAtmosphereScene({
               maxWidth: isPhone ? "58vw" : isCompact ? "42%" : "36%",
               zIndex: 8,
             }}
+            ref={(node) => {
+              if (lm.isBoundary) {
+                if (node) {
+                  boundaryTextRefs.current.set(lm.km, node);
+                } else {
+                  boundaryTextRefs.current.delete(lm.km);
+                }
+              }
+            }}
           >
             <div>
               <div
                 style={{
-                  fontSize: lm.isBoundary ? (isPhone ? "11px" : "13px") : isPhone ? "15px" : "18px",
-                  fontWeight: lm.isBoundary ? 400 : 600,
-                  color: lm.isBoundary ? lmSubColor : lmTextColor,
-                  letterSpacing: lm.isBoundary ? "0.1em" : "0",
-                  textTransform: lm.isBoundary ? "uppercase" : "none",
+                  fontSize: isPhone ? "15px" : "18px",
+                  fontWeight: 600,
+                  color: lmTextColor,
+                  letterSpacing: "0",
+                  textTransform: "none",
                   lineHeight: isPhone ? 1.3 : 1.2,
                 }}
               >
@@ -2377,7 +2543,7 @@ const StaticAtmosphereScene = memo(function StaticAtmosphereScene({
 });
 
 // ─── Main Component ──────────────────────────────────────────────────
-export default function AtmosphereScrolly() {
+export default function ScrollUp() {
   const [viewport, setViewport] = useState(() => {
     if (typeof window === "undefined") {
       return { width: 1280, height: 800 };
