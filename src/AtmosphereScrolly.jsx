@@ -159,6 +159,7 @@ const CHAPTER_BREAKS = {
       "If you were out here without protection, you wouldn't feel hot from the surrounding gas the way you would in hot air on Earth. Instead, your body would gain or lose heat mostly through radiation, largely based on how exposed you were to sunlight.",
       "For an astronaut in the vacuum of space, direct sunlight can warm the outside of a spacesuit to about 121°C (250°F), while deep shade can cool it down to about −157°C (−250°F).",
       "That's why spacesuits use reflective outer layers, heavy insulation, and active cooling systems to manage enormous swings between sun and shade.",
+      "But if your spacesuit failed, you'd have bigger fish to fry. The low pressure and lack of oxygen would kill you within minutes. :)"
     ],
   },
   500: {
