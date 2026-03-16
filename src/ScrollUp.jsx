@@ -190,7 +190,7 @@ const CHAPTER_BREAKS = {
   250: {
     lines: [
       "This high up, temperature stops meaning what it does on Earth.",
-      "Temperature is the measure of the average kinetic energy of gas molecules. The gas here can have a very high temperature because the few molecules that remain are moving extremely fast, since they've absorbed lots of energy from the sun.",
+      "Temperature is the measure of the average kinetic energy of molecules. The gas here can have a very high temperature because the few molecules that remain are moving extremely fast, since they've absorbed lots of energy from the sun.",
       "But there are so few of them that they wouldn't be able to transfer any meaningful amount of heat to your body or spacesuit by collision. (That's also why there's no sound in space; there's not enough air to carry sound waves.)",
       "If you were out here without protection, you wouldn't feel hot from the surrounding gas the way you would in hot air on Earth. Instead, your body would gain or lose heat mostly through radiation, largely based on how exposed you were to sunlight.",
       "For an astronaut in the vacuum of space, direct sunlight can warm the outside of a spacesuit to about 121°C (250°F), while deep shade can cool it down to about −157°C (−250°F).",
