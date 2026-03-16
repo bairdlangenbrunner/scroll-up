@@ -3,6 +3,7 @@ import { memo, useState, useEffect, useRef, useMemo, useCallback } from "react";
 // ─── Scale & Constants ───────────────────────────────────────────────
 const MAX_ALTITUDE_KM = 550;
 const MOBILE_TEMP_OVERLAY_WIDTH = 40;
+const ALTITUDE_STORAGE_KEY = "scroll-up:current-km";
 // Ocean height is computed dynamically as 50vh inside the component
 
 const PX_PER_KM = 250;
@@ -13,6 +14,23 @@ function altitudeToPixels(km) {
 
 function pixelsToAltitude(px) {
   return Math.max(0, px / PX_PER_KM);
+}
+
+function clampAltitude(km) {
+  return Math.max(0, Math.min(MAX_ALTITUDE_KM, km));
+}
+
+function loadSavedAltitude() {
+  if (typeof window === "undefined") return 0;
+
+  try {
+    const raw = window.localStorage.getItem(ALTITUDE_STORAGE_KEY);
+    if (raw == null) return 0;
+    const parsed = Number.parseFloat(raw);
+    return Number.isFinite(parsed) ? clampAltitude(parsed) : 0;
+  } catch {
+    return 0;
+  }
 }
 
 const ATM_HEIGHT = altitudeToPixels(MAX_ALTITUDE_KM) + 400; // atmosphere portion only
@@ -2551,7 +2569,7 @@ export default function ScrollUp() {
     return { width: window.innerWidth, height: window.innerHeight };
   });
   const [hudHeight, setHudHeight] = useState(88);
-  const [currentKm, setCurrentKm] = useState(0);
+  const [currentKm, setCurrentKm] = useState(loadSavedAltitude);
   const [, setIsTempDragging] = useState(false);
   const [, setIsRulerDragging] = useState(false);
   const hudRef = useRef(null);
@@ -2622,15 +2640,25 @@ export default function ScrollUp() {
   }, []);
 
   const setAltitude = useCallback((nextKm) => {
-    setCurrentKm(Math.max(0, Math.min(MAX_ALTITUDE_KM, nextKm)));
+    setCurrentKm(clampAltitude(nextKm));
   }, []);
 
   const applyScrollDelta = useCallback((deltaPx) => {
     if (deltaPx === 0) return;
     setCurrentKm((prev) =>
-      Math.max(0, Math.min(MAX_ALTITUDE_KM, prev - deltaPx / PX_PER_KM))
+      clampAltitude(prev - deltaPx / PX_PER_KM)
     );
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    try {
+      window.localStorage.setItem(ALTITUDE_STORAGE_KEY, currentKm.toString());
+    } catch {
+      // Ignore storage failures; the app should still work without persistence.
+    }
+  }, [currentKm]);
 
   useEffect(() => {
     if (typeof window === "undefined") return undefined;
