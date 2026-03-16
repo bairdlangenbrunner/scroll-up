@@ -94,7 +94,7 @@ const landmarks = [
   { km: 0.8, label: "Burj Khalifa", detail: "The tallest building on Earth (828 m)" },
   { km: 5.895, label: "Mount Kilimanjaro", detail: "Africa's tallest mountain (5.895 km), at roughly 1/2 of sea-level pressure" },
   { km: 5.5, label: "Half the atmosphere by mass", detail: "Half of all air molecules are below this point" },
-  { km: 8.8, label: "Mount Everest", detail: "8.849 km; air pressure is 1/3 of sea level" },
+  { km: 8.849, label: "Mount Everest", detail: "8.849 km; air pressure is 1/3 of sea level" },
   { km: 10, label: "Cruising altitude", detail: "Where commercial jets fly · about −50°C (−58°F) outside" },
   { km: 12, label: "Tropopause", detail: "The boundary where weather ends and the stratosphere begins", isBoundary: true },
   { km: 13.7, label: "80% of the atmosphere by mass", detail: "About 80% of the atmosphere's mass lies below roughly 13.7 km" },
