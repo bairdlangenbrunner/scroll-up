@@ -120,7 +120,7 @@ const landmarks = [
   { km: 375, label: "Gravity persists", detail: "Gravity here is still about 88% of surface gravity; astronauts feel weightless not because gravity disappears, but because they and their spacecraft are both in continuous free fall around Earth" },
   { km: 408, label: "International Space Station", detail: "Orbiting at ~408 km, still technically in the atmosphere" },
   { km: 425, label: "Polar orbit band", detail: "Polar-orbiting satellites here circle Earth from pole to pole every ~93 minutes, scanning the entire planet's surface within 24 hours; most weather and Earth-observation satellites operate in this band" },
-  { km: 450, label: "Air too thin for weather", detail: "There are still particles here, but the atmosphere is now far too sparse for clouds, winds, or anything resembling ordinary weather" },
+  { km: 450, label: "Space weather dominates", detail: "By this height, the important forces are no longer clouds or winds, but radiation, charged particles, and geomagnetic storms" },
   { km: 475, label: "Radiation intensifies", detail: "The inner Van Allen belt begins to encroach here; astronauts accumulate roughly 10× the annual radiation dose of people on the ground, even inside a shielded spacecraft" },
   { km: 500, label: "Thermopause", detail: "Above here is the exosphere, where the atmosphere fades into the vacuum of space", isBoundary: true },
   { km: 525, label: "Molecules in free flight", detail: "Air is so diffuse here that individual molecules can travel hundreds of kilometers before colliding with another; the classical idea of \"air\" is dissolving into interplanetary space" },
