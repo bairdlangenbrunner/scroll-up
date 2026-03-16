@@ -117,7 +117,7 @@ const landmarks = [
   { km: 300, label: "Auroral peak activity", detail: "Some of the brightest auroral curtains and arcs form in this altitude range" },
   { km: 325, label: "Red aurora crown", detail: "The deep crimson glow at the top of tall auroral rays forms here; oxygen atoms, energized by solar electrons, radiate at 630 nm before slowly cooling" },
   { km: 350, label: "Orbital drag still matters", detail: "Even here, trace atmosphere steadily slows satellites unless they boost their orbit" },
-  { km: 375, label: "Gravity persists", detail: "Gravity here is still about 88% of surface gravity. Astronauts feel weightless not because gravity disappears, but because they and their spacecraft are both in continuous free fall around Earth." },
+  { km: 375, label: "Gravity persists", detail: "Gravity here is still about 88% of surface gravity; astronauts feel weightless not because gravity disappears, but because they and their spacecraft are both in continuous free fall around Earth" },
   { km: 408, label: "International Space Station", detail: "Orbiting at ~408 km, still technically in the atmosphere" },
   { km: 425, label: "Polar orbit band", detail: "Polar-orbiting satellites here circle Earth from pole to pole every ~93 minutes, scanning the entire planet's surface within 24 hours; most weather and Earth-observation satellites operate in this band" },
   { km: 450, label: "Air too thin for weather", detail: "There are still particles here, but the atmosphere is now far too sparse for clouds, winds, or anything resembling ordinary weather" },
